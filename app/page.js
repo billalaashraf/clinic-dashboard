@@ -485,7 +485,7 @@ export default function Dashboard() {
                     const isSel = selected?.Client_ID===c.Client_ID
                     const isEdit = editRow===c.Client_ID
                     return (
-                      <tr key={i}
+                      <tr key={c.Client_ID}
                         onClick={()=>{ if(!isEdit){setSelected(isSel?null:c); setEditRow(null)} }}
                         style={{borderBottom:'1px solid #0f0f0f',cursor:'pointer',background:isSel?'#161616':pri.bg,transition:'background 0.1s'}}
                         onMouseEnter={e=>{ if(!isSel) e.currentTarget.style.background='#111111' }}
