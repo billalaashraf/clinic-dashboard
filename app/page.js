@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 
-const WEBHOOK_URL = 'https://bilalashraf234.app.n8n.cloud/webhook/clinic-data'
+const WEBHOOK_URL = '/api/clients'
 const UPDATE_URL  = 'https://bilalashraf234.app.n8n.cloud/webhook/update-client'
 const REMIND_URL  = 'https://bilalashraf234.app.n8n.cloud/webhook/send-reminder'
 const ADD_URL     = 'https://bilalashraf234.app.n8n.cloud/webhook/add-client'
