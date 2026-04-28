@@ -248,7 +248,7 @@ export default function Dashboard() {
   }
 
   function handleAdd(form) {
-    const nc = {Client_ID:`CLT-${String(clients.length+1).padStart(3,'0')}`,...form,Status:'Active',Last_Reminder_Sent:'',Next_Reminder_Date:'',row_number:clients.length+2}
+    const nc = {Client_ID:`CLT-${String(clients.length+1).padStart(3,'0')}`,...form,Status:'Active',Last_Reminder_Sent:'',Next_Reminder_Date:'',row_number: Date.now()}
     setClients(cs=>[...cs,nc]); showToast(`${form.Full_Name} added successfully`); setTimeout(()=>setShowAdd(false), 500)
   }
 
