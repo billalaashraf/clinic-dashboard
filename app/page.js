@@ -193,6 +193,7 @@ export default function Dashboard() {
   const [editRow,setEditRow]   = useState(null)
   const [editV,setEditV]       = useState({})
   const [width,setWidth]       = useState(1200)
+  const [showBanner,setShowBanner] = useState(true)
 
   useEffect(()=>{
     setWidth(window.innerWidth)
@@ -377,10 +378,11 @@ export default function Dashboard() {
       {showAdd&&<AddModal onClose={()=>setShowAdd(false)} onAdd={handleAdd}/>}
 
       {/* Urgent banner */}
-      {!loading&&topClient&&topPri?.score>=70&&(
+      {!loading&&topClient&&topPri?.score>=70&&showBanner&&(
         <div style={{background:'#1a1208',borderBottom:'1px solid #3d2810',padding:'9px 1.5rem',fontSize:12,color:'#e8c87e',display:'flex',alignItems:'center',gap:8,flexShrink:0}}>
           <span style={{fontWeight:700}}>⚡ Priority:</span>
           <span>{topClient.Full_Name} is {topPri.sub}. Send reminder now to recover <strong>${getRevenue(topClient).toLocaleString()}</strong> today.</span>
+          <button onClick={()=>setShowBanner(false)} style={{background:'none',border:'none',color:'#e8c87e',cursor:'pointer',fontSize:18,marginLeft:'auto',opacity:0.7,lineHeight:1,padding:0}}>×</button>
         </div>
       )}
 
