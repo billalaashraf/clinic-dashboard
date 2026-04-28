@@ -482,8 +482,8 @@ export default function Dashboard() {
                     const rev   = getRevenue(c)
                     const stage = STAGE_STYLE[c.Reminder_Stage]||{bg:'#1a1a1a',color:'#666'}
                     const diff  = dayDiff(c.Next_Reminder_Date)
-                    const isSel = selected?.Client_ID===c.Client_ID
-                    const isEdit = editRow===c.Client_ID
+                    const isSel = selected?.Client_ID===(c.Client_ID||`row-${i}`)
+                    const cid = c.Client_ID||`row-${i}`; const isEdit = editRow===cid
                     return (
                       <tr key={c.Client_ID}
                         onClick={()=>{ if(!isEdit){setSelected(isSel?null:c); setEditRow(null)} }}
@@ -569,7 +569,7 @@ export default function Dashboard() {
                                 style={{background:'#1a1e2e',border:'none',color:'#7eb3e8',padding:'4px 7px',borderRadius:4,cursor:'pointer',fontSize:10,opacity:doing===c.Client_ID?0.5:1}}>
                                 {doing===c.Client_ID?'...':'✓'}
                               </button>
-                              <button onClick={e=>{e.stopPropagation();setEditRow(isEdit?null:c.Client_ID);setEditV({Reminder_Stage:c.Reminder_Stage,Next_Reminder_Date:c.Next_Reminder_Date||''})}}
+                              <button onClick={e=>{e.stopPropagation();setEditRow(isEdit?null:cid);setEditV({Reminder_Stage:c.Reminder_Stage,Next_Reminder_Date:c.Next_Reminder_Date||''})}}
                                 style={{background:'#1e1e1e',border:'none',color:'#555',padding:'4px 7px',borderRadius:4,cursor:'pointer',fontSize:10}}>
                                 ✎
                               </button>
