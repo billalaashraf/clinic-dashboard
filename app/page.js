@@ -225,7 +225,7 @@ export default function Dashboard() {
     e.stopPropagation(); setSending(c.Client_ID)
     try {
       await fetch(REMIND_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({client:c})})
-      await fetch('/api/send-reminder',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({row_number:c.row_number,name:c.Full_Name,email:c.Email,treatment:c.Treatment_Type})}); showToast(`Reminder sent to ${c.Full_Name}`)
+      await fetch('/api/send-reminder',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({row_number:c.row_number,name:c.Full_Name,email:c.Email,treatment:c.Treatment_Type})}); await fetch('/api/send-reminder',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({client_id:c.Client_ID,row_number:c.row_number,name:c.Full_Name,email:c.Email,treatment:c.Treatment_Type})}); showToast(`Reminder sent to ${c.Full_Name}`)
     } catch { showToast('Failed to send reminder','error') }
     finally { setSending(null) }
   }
