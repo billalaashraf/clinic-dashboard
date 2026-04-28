@@ -70,7 +70,7 @@ function Toast({msg,type,onDone}) {
 
 // ── Add Client Modal ───────────────────────────────────────────
 function AddModal({onClose, onAdd}) {
-  const [f,setF] = useState({Full_Name:'',WhatsApp_Number:'',Treatment_Type:'Botox',Treatment_Date:'',Session_Number:'1',Total_Sessions_Planned:'',Reminder_Stage:'Aftercare',Notes:''})
+  const [f,setF] = useState({Full_Name:'',WhatsApp_Number:'',Email:'',Treatment_Type:'Botox',Treatment_Date:'',Session_Number:'1',Total_Sessions_Planned:'',Reminder_Stage:'Aftercare',Notes:''})
   const [saving,setSaving] = useState(false)
   const [err,setErr] = useState('')
   const set = (k,v) => setF(x=>({...x,[k]:v}))
@@ -78,6 +78,7 @@ function AddModal({onClose, onAdd}) {
   async function submit() {
     if(!f.Full_Name.trim()) return setErr('Full name is required')
     if(!f.WhatsApp_Number.trim()) return setErr('WhatsApp number is required')
+    if(!f.Email.trim()) return setErr('Email is required')
     if(!f.Treatment_Date) return setErr('Treatment date is required')
     setErr(''); setSaving(true)
     try {
@@ -114,6 +115,10 @@ function AddModal({onClose, onAdd}) {
             <div>
               <label style={lbl}>WhatsApp Number <span style={{color:'#e87e7e'}}>*</span></label>
               <input style={inp} value={f.WhatsApp_Number} onChange={e=>set('WhatsApp_Number',e.target.value)} placeholder="+923001234567"/>
+            </div>
+            <div>
+              <label style={lbl}>Email <span style={{color:'#e87e7e'}}>*</span></label>
+              <input style={inp} type="email" value={f.Email} onChange={e=>set('Email',e.target.value)} placeholder="client@example.com"/>
             </div>
           </div>
 
@@ -220,7 +225,7 @@ export default function Dashboard() {
     e.stopPropagation(); setSending(c.Client_ID)
     try {
       await fetch(REMIND_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({client:c})})
-      showToast(`Reminder sent to ${c.Full_Name}`)
+      await fetch('/api/send-reminder',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({row_number:c.row_number,name:c.Full_Name,email:c.Email,treatment:c.Treatment_Type})}); showToast(`Reminder sent to ${c.Full_Name}`)
     } catch { showToast('Failed to send reminder','error') }
     finally { setSending(null) }
   }
