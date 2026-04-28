@@ -472,7 +472,7 @@ export default function Dashboard() {
                 </thead>
                 <tbody>
                   {loading?(
-                    <tr><td colSpan={7} style={{padding:'3rem',textAlign:'center',color:'#333',fontSize:13}}>Loading from Google Sheets...</td></tr>
+                    <tr><td colSpan={7} style={{padding:'3rem',textAlign:'center',color:'#333',fontSize:13}}>Loading...</td></tr>
                   ):filtered.length===0?(
                     <tr><td colSpan={7} style={{padding:'3rem',textAlign:'center',color:'#333',fontSize:13}}>No clients match your filters</td></tr>
                   ):filtered.map((c,i)=>{
