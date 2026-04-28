@@ -379,8 +379,8 @@ export default function Dashboard() {
       {/* Urgent banner */}
       {!loading&&topClient&&topPri?.score>=70&&(
         <div style={{background:'#1a1208',borderBottom:'1px solid #3d2810',padding:'9px 1.5rem',fontSize:12,color:'#e8c87e',display:'flex',alignItems:'center',gap:8,flexShrink:0}}>
-          <span style={{fontWeight:700}}>⚡ Priority:</span>
-          <span>{topClient.Full_Name} is {topPri.sub}. Send reminder now to recover <strong>${getRevenue(topClient).toLocaleString()}</strong> today.</span>
+          <span id="urgent-banner" style={{display:"flex",alignItems:"center",width:"100%",gap:8}}><span style={{fontWeight:700}}>⚡ Priority:</span>
+          <span>{topClient.Full_Name} is {topPri.sub}. Send reminder now to recover <strong>${getRevenue(topClient).toLocaleString()}</strong> today.</span><button onClick={()=>document.getElementById("urgent-banner").style.display="none"} style={{background:"none",border:"none",color:"#e8c87e",cursor:"pointer",fontSize:18,marginLeft:"auto",opacity:0.7,lineHeight:1}}>×</button>
         </div>
       )}
 
