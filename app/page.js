@@ -184,7 +184,7 @@ function Sidebar({active, onNav, onSignOut}) {
   return (
     <div style={{width:220,flexShrink:0,background:C.white,borderRight:`1px solid ${C.border}`,display:'flex',flexDirection:'column',height:'100vh',position:'sticky',top:0,alignSelf:'flex-start'}}>
       <div style={{padding:'20px 20px 16px'}}>
-        <div style={{fontSize:18,fontWeight:800,color:C.blueDark,letterSpacing:'-0.4px'}}>ClinicPulse</div>
+        <div style={{fontSize:18,fontWeight:800,color:C.blueDark,letterSpacing:'-0.4px'}}>ClinicPulse 2.0</div>
         <div style={{fontSize:10,color:C.muted,fontWeight:500,marginTop:2}}>Command Center</div>
       </div>
       <div style={{borderTop:`1px solid ${C.border}`,padding:'10px 10px',flex:1}}>
@@ -872,7 +872,7 @@ function LoginScreen({onLogin}) {
     <div style={{minHeight:'100vh',background:C.bg,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:"'Inter',system-ui,sans-serif"}}>
       <div style={{...card,width:400,padding:'48px 44px',boxShadow:'0 8px 40px rgba(0,0,0,0.10)',borderRadius:20}}>
         <div style={{textAlign:'center',marginBottom:32}}>
-          <div style={{fontSize:22,fontWeight:800,color:C.blueDark,letterSpacing:'-0.5px'}}>ClinicPulse</div>
+          <div style={{fontSize:22,fontWeight:800,color:C.blueDark,letterSpacing:'-0.5px'}}>ClinicPulse 2.0</div>
           <div style={{fontSize:13,color:C.muted,marginTop:6,fontWeight:500}}>Command Center Access</div>
         </div>
         <div style={{display:'flex',flexDirection:'column',gap:14,marginBottom:20}}>
