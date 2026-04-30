@@ -6,6 +6,27 @@ const UPDATE_URL  = '/api/update-client'
 const REMIND_URL  = '/api/send-reminder'
 const ADD_URL     = '/api/add-client'
 
+// ─── design tokens ───────────────────────────────────────────────────────────
+const C = {
+  blue:'#2563eb', blueSoft:'#dbeafe', blueDark:'#1d4ed8',
+  green:'#16a34a', greenSoft:'#dcfce7',
+  red:'#dc2626', redSoft:'#fee2e2',
+  amber:'#d97706', amberSoft:'#fef3c7',
+  teal:'#0891b2', tealSoft:'#cffafe',
+  orange:'#ea580c', orangeSoft:'#ffedd5',
+  purple:'#7c3aed', purpleSoft:'#ede9fe',
+  bg:'#f0f2f7', white:'#ffffff',
+  border:'#e5e7eb', muted:'#6b7280', label:'#374151', body:'#111827',
+}
+const card = { background:C.white, border:`1px solid ${C.border}`, borderRadius:14, boxShadow:'0 1px 4px rgba(0,0,0,0.045)' }
+const inp  = { width:'100%', padding:'10px 12px', background:'#f9fafb', border:`1px solid ${C.border}`, borderRadius:8, color:C.body, fontSize:13, outline:'none', boxSizing:'border-box', fontFamily:'inherit' }
+const lbl  = { fontSize:12, color:C.muted, marginBottom:4, display:'block', fontWeight:500 }
+const pill = (bg,color) => ({ background:bg, color, padding:'3px 10px', borderRadius:20, fontSize:11, fontWeight:600, whiteSpace:'nowrap', display:'inline-block' })
+const btn  = (variant='solid') => variant==='solid'
+  ? { background:C.blue, border:'none', color:'#fff', padding:'9px 18px', borderRadius:10, cursor:'pointer', fontSize:13, fontWeight:600, fontFamily:'inherit', transition:'background 150ms' }
+  : { background:'#fff', border:`1px solid ${C.border}`, color:C.label, padding:'9px 16px', borderRadius:10, cursor:'pointer', fontSize:13, fontWeight:500, fontFamily:'inherit' }
+
+// ─── helpers (unchanged logic) ────────────────────────────────────────────────
 function parseDate(str) {
   if (!str) return null
   const p = str.split('/')
@@ -21,14 +42,14 @@ function dayDiff(str) {
   return Math.round((d - t) / 86400000)
 }
 function getPriority(c) {
-  if (c.Status === 'Lapsed') return { score:95, label:'CRITICAL', sub:'Lapsed', color:'#ef4444' }
+  if (c.Status === 'Lapsed') return { score:95, label:'CRITICAL', sub:'Lapsed', color:C.red }
   const diff = dayDiff(c.Next_Reminder_Date)
-  if (diff === null) return { score:10, label:'LOW', sub:'No date', color:'#9ca3af' }
-  if (diff < -2) return { score:90+Math.min(Math.abs(diff),9), label:'CRITICAL', sub:`${Math.abs(diff)}d overdue`, color:'#ef4444' }
-  if (diff < 0)  return { score:75, label:'HIGH', sub:`${Math.abs(diff)}d overdue`, color:'#f97316' }
-  if (diff === 0) return { score:70, label:'DUE TODAY', sub:'Act now', color:'#eab308' }
-  if (diff <= 3)  return { score:50, label:'HIGH', sub:`In ${diff}d`, color:'#3b82f6' }
-  return { score:20, label:'MED', sub:`In ${diff}d`, color:'#6b7280' }
+  if (diff === null) return { score:10, label:'LOW', sub:'No date', color:C.muted }
+  if (diff < -2) return { score:90+Math.min(Math.abs(diff),9), label:'CRITICAL', sub:`${Math.abs(diff)}d overdue`, color:C.red }
+  if (diff < 0)  return { score:75, label:'HIGH', sub:`${Math.abs(diff)}d overdue`, color:C.orange }
+  if (diff === 0) return { score:70, label:'DUE TODAY', sub:'Act now', color:C.amber }
+  if (diff <= 3)  return { score:50, label:'HIGH', sub:`In ${diff}d`, color:C.blue }
+  return { score:20, label:'MED', sub:`In ${diff}d`, color:C.muted }
 }
 function getAIMove(c) {
   const diff = dayDiff(c.Next_Reminder_Date)
@@ -44,28 +65,48 @@ function getRevenue(c) {
   const diff = dayDiff(c.Next_Reminder_Date)
   return v * (c.Status==='Lapsed' ? 3 : diff!==null&&diff<0 ? 2 : 1)
 }
+
 const STAGES = ['Aftercare','Results Check','Rebooking','Win-back','Next Session','Lapsed']
 const TREATMENTS = ['Botox','Dermal Filler - Lips','Dermal Filler - Cheeks','Dermal Filler - Jawline','Anti-Sweat Injection','Laser Hair Removal','Laser Skin Resurfacing','Chemical Peel','HydraFacial','Microneedling / RF Microneedling','IPL / Photofacial','CoolSculpting / Cryolipolysis','HIFU / Ultherapy','RF Body Tightening','Cavitation']
 const STAGE_STYLE = {
-  'Aftercare':     {bg:'#dcfce7', color:'#15803d'},
-  'Results Check': {bg:'#dbeafe', color:'#1d4ed8'},
-  'Next Session':  {bg:'#fef9c3', color:'#854d0e'},
-  'Rebooking':     {bg:'#f0fdf4', color:'#166534'},
-  'Win-back':      {bg:'#faf5ff', color:'#7e22ce'},
-  'Lapsed':        {bg:'#fee2e2', color:'#b91c1c'},
+  'Aftercare':    {bg:C.greenSoft,  color:C.green},
+  'Results Check':{bg:C.blueSoft,   color:C.blueDark},
+  'Next Session': {bg:'#fef9c3',    color:'#854d0e'},
+  'Rebooking':    {bg:'#f0fdf4',    color:'#166534'},
+  'Win-back':     {bg:C.purpleSoft, color:C.purple},
+  'Lapsed':       {bg:C.redSoft,    color:C.red},
 }
-const inp = {width:'100%',padding:'8px 10px',background:'#f9fafb',border:'0.5px solid #d1d5db',borderRadius:6,color:'#111',fontSize:13,outline:'none',boxSizing:'border-box'}
-const lbl = {fontSize:12,color:'#6b7280',marginBottom:4,display:'block'}
-const sect = {fontSize:10,color:'#6b7280',textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:10,paddingBottom:6,borderBottom:'0.5px solid #e5e7eb'}
-const card = {background:'#fff',border:'0.5px solid #e5e7eb',borderRadius:12,padding:16}
 
-function Toast({msg,type,onDone}) {
+// ─── Toast ───────────────────────────────────────────────────────────────────
+function Toast({msg, type, onDone}) {
   useEffect(()=>{const t=setTimeout(onDone,3000);return()=>clearTimeout(t)},[])
-  const ok=type!=='error'
-  return <div style={{position:'fixed',top:20,right:20,zIndex:1000,background:ok?'#dcfce7':'#fee2e2',border:`1px solid ${ok?'#86efac':'#fca5a5'}`,color:ok?'#166534':'#991b1b',padding:'12px 18px',borderRadius:8,fontSize:13,fontWeight:500,boxShadow:'0 4px 12px rgba(0,0,0,0.1)'}}>{ok?'✓':'✗'} {msg}</div>
+  const ok = type !== 'error'
+  return (
+    <div style={{position:'fixed',top:20,right:20,zIndex:2000,background:ok?C.greenSoft:C.redSoft,border:`1px solid ${ok?'#86efac':'#fca5a5'}`,color:ok?C.green:C.red,padding:'12px 20px',borderRadius:10,fontSize:13,fontWeight:600,boxShadow:'0 4px 16px rgba(0,0,0,0.12)',display:'flex',alignItems:'center',gap:8}}>
+      <span>{ok?'✓':'✗'}</span> {msg}
+    </div>
+  )
 }
 
-function AddModal({onClose,onAdd}) {
+// ─── Logout Modal ─────────────────────────────────────────────────────────────
+function LogoutModal({onConfirm, onCancel}) {
+  return (
+    <div style={{position:'fixed',inset:0,background:'rgba(15,20,30,0.45)',backdropFilter:'blur(4px)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center'}} onClick={e=>{if(e.target===e.currentTarget)onCancel()}}>
+      <div style={{...card,width:360,padding:'32px 28px',textAlign:'center'}}>
+        <div style={{width:48,height:48,borderRadius:14,background:C.redSoft,display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 16px',fontSize:22}}>🚪</div>
+        <div style={{fontSize:18,fontWeight:700,color:C.body,marginBottom:8}}>Sign out?</div>
+        <div style={{fontSize:13,color:C.muted,marginBottom:24}}>You'll be returned to the login screen.</div>
+        <div style={{display:'flex',gap:10}}>
+          <button onClick={onCancel} style={{...btn('outline'),flex:1}}>Cancel</button>
+          <button onClick={onConfirm} style={{...btn(),flex:1,background:C.red}}>Sign out</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Add Patient Modal ────────────────────────────────────────────────────────
+function AddModal({onClose, onAdd}) {
   const [f,setF]=useState({Full_Name:'',WhatsApp_Number:'',Email:'',Treatment_Type:'Botox',Treatment_Date:'',Session_Number:'1',Total_Sessions_Planned:'',Reminder_Stage:'Aftercare',Notes:''})
   const [saving,setSaving]=useState(false)
   const [err,setErr]=useState('')
@@ -77,52 +118,52 @@ function AddModal({onClose,onAdd}) {
     if(!f.Treatment_Date) return setErr('Treatment date is required')
     setErr('');setSaving(true)
     try { await fetch(ADD_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(f)}); onAdd(f) }
-    catch(e){ setErr('Failed to add client.') }
+    catch { setErr('Failed to add client.') }
     finally { setSaving(false) }
   }
+  const sect = {fontSize:10,color:C.muted,textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:10,paddingBottom:6,borderBottom:`1px solid ${C.border}`,fontWeight:600}
   return (
-    <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',zIndex:300,display:'flex',alignItems:'center',justifyContent:'center',padding:'1rem'}} onClick={e=>{if(e.target===e.currentTarget)onClose()}}>
-      <div style={{background:'#fff',borderRadius:14,width:'100%',maxWidth:480,maxHeight:'92vh',overflowY:'auto',boxShadow:'0 8px 40px rgba(0,0,0,0.15)'}}>
-        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'18px 20px',borderBottom:'0.5px solid #e5e7eb'}}>
-          <div><div style={{fontSize:16,fontWeight:600,color:'#111'}}>Add Patient</div><div style={{fontSize:11,color:'#6b7280',marginTop:2}}>Fill in details to add to follow-up system</div></div>
-          <button onClick={onClose} style={{background:'#f3f4f6',border:'none',borderRadius:6,color:'#6b7280',cursor:'pointer',fontSize:18,width:28,height:28,display:'flex',alignItems:'center',justifyContent:'center'}}>×</button>
+    <div style={{position:'fixed',inset:0,background:'rgba(15,20,30,0.45)',backdropFilter:'blur(4px)',zIndex:500,display:'flex',alignItems:'center',justifyContent:'center',padding:'1rem'}} onClick={e=>{if(e.target===e.currentTarget)onClose()}}>
+      <div style={{...card,width:'100%',maxWidth:480,maxHeight:'92vh',overflowY:'auto',boxShadow:'0 24px 60px rgba(0,0,0,0.18)'}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'20px 24px',borderBottom:`1px solid ${C.border}`}}>
+          <div>
+            <div style={{fontSize:16,fontWeight:700,color:C.body}}>Add Patient</div>
+            <div style={{fontSize:12,color:C.muted,marginTop:2}}>Fill in details to add to follow-up system</div>
+          </div>
+          <button onClick={onClose} style={{background:'#f3f4f6',border:'none',borderRadius:8,color:C.muted,cursor:'pointer',fontSize:18,width:32,height:32,display:'flex',alignItems:'center',justifyContent:'center'}}>×</button>
         </div>
-        <div style={{padding:20}}>
+        <div style={{padding:24}}>
           <div style={sect}>Client Information</div>
-          <div style={{display:'flex',flexDirection:'column',gap:12,marginBottom:18}}>
+          <div style={{display:'flex',flexDirection:'column',gap:12,marginBottom:20}}>
             <div><label style={lbl}>Full Name *</label><input style={inp} value={f.Full_Name} onChange={e=>set('Full_Name',e.target.value)} placeholder="e.g. Sara Ahmed"/></div>
             <div><label style={lbl}>WhatsApp Number *</label><input style={inp} value={f.WhatsApp_Number} onChange={e=>set('WhatsApp_Number',e.target.value)} placeholder="+923001234567"/></div>
             <div><label style={lbl}>Email *</label><input style={inp} type="email" value={f.Email} onChange={e=>set('Email',e.target.value)} placeholder="client@example.com"/></div>
           </div>
           <div style={sect}>Treatment Details</div>
-          <div style={{display:'flex',flexDirection:'column',gap:12,marginBottom:18}}>
+          <div style={{display:'flex',flexDirection:'column',gap:12,marginBottom:20}}>
             <div><label style={lbl}>Treatment Type *</label>
-              <select style={inp} value={f.Treatment_Type} onChange={e=>set('Treatment_Type',e.target.value)}>
-                {TREATMENTS.map(t=><option key={t}>{t}</option>)}
-              </select>
+              <select style={inp} value={f.Treatment_Type} onChange={e=>set('Treatment_Type',e.target.value)}>{TREATMENTS.map(t=><option key={t}>{t}</option>)}</select>
             </div>
-            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
               <div><label style={lbl}>Treatment Date *</label><input style={inp} type="date" value={f.Treatment_Date} onChange={e=>set('Treatment_Date',e.target.value)}/></div>
               <div><label style={lbl}>Session Number</label><input style={inp} type="number" min="1" value={f.Session_Number} onChange={e=>set('Session_Number',e.target.value)}/></div>
             </div>
-            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
               <div><label style={lbl}>Total Sessions Planned</label><input style={inp} type="number" value={f.Total_Sessions_Planned} onChange={e=>set('Total_Sessions_Planned',e.target.value)} placeholder="Blank if one-off"/></div>
               <div><label style={lbl}>Initial Stage</label>
-                <select style={inp} value={f.Reminder_Stage} onChange={e=>set('Reminder_Stage',e.target.value)}>
-                  {STAGES.map(s=><option key={s}>{s}</option>)}
-                </select>
+                <select style={inp} value={f.Reminder_Stage} onChange={e=>set('Reminder_Stage',e.target.value)}>{STAGES.map(s=><option key={s}>{s}</option>)}</select>
               </div>
             </div>
           </div>
           <div style={sect}>Additional</div>
           <div style={{marginBottom:16}}>
             <label style={lbl}>Notes <span style={{color:'#9ca3af'}}>(optional)</span></label>
-            <textarea style={{...inp,resize:'vertical',minHeight:72,fontFamily:'inherit'}} value={f.Notes} onChange={e=>set('Notes',e.target.value)} placeholder="Any relevant notes..."/>
+            <textarea style={{...inp,resize:'vertical',minHeight:72}} value={f.Notes} onChange={e=>set('Notes',e.target.value)} placeholder="Any relevant notes..."/>
           </div>
-          {err&&<div style={{background:'#fee2e2',border:'1px solid #fca5a5',borderRadius:6,padding:'8px 12px',marginBottom:14,fontSize:12,color:'#991b1b'}}>{err}</div>}
-          <div style={{display:'flex',gap:8}}>
-            <button onClick={onClose} style={{flex:1,background:'#f3f4f6',border:'none',color:'#374151',padding:10,borderRadius:8,cursor:'pointer',fontSize:13}}>Cancel</button>
-            <button onClick={submit} disabled={saving} style={{flex:2,background:saving?'#93c5fd':'#2563eb',border:'none',color:'#fff',padding:10,borderRadius:8,cursor:'pointer',fontSize:13,fontWeight:500}}>{saving?'Adding...':'+ Add Patient'}</button>
+          {err&&<div style={{background:C.redSoft,border:`1px solid #fca5a5`,borderRadius:8,padding:'8px 12px',marginBottom:14,fontSize:12,color:C.red}}>{err}</div>}
+          <div style={{display:'flex',gap:10}}>
+            <button onClick={onClose} style={{...btn('outline'),flex:1}}>Cancel</button>
+            <button onClick={submit} disabled={saving} style={{...btn(),flex:2,opacity:saving?0.7:1}}>{saving?'Adding...':'+ Add Patient'}</button>
           </div>
         </div>
       </div>
@@ -130,257 +171,90 @@ function AddModal({onClose,onAdd}) {
   )
 }
 
-function AppointmentsPage() {
-  const days=[{day:'Mon',date:22,count:6},{day:'Tue',date:23,count:8},{day:'Wed',date:24,count:10,active:true},{day:'Thu',date:25,count:7},{day:'Fri',date:26,count:5}]
-  const appointments=[{time:'09:30 AM',patient:'Emma Stone',doctor:'Dr. Patel',status:'Booked'},{time:'11:00 AM',patient:'Noah Diaz',doctor:'Dr. Khan',status:'Completed'},{time:'02:45 PM',patient:'Ava Kim',doctor:'Dr. Rogers',status:'Missed'}]
-  const ss={'Booked':{bg:'#dbeafe',color:'#1d4ed8'},'Completed':{bg:'#dcfce7',color:'#15803d'},'Missed':{bg:'#fee2e2',color:'#b91c1c'}}
+// ─── Sidebar ──────────────────────────────────────────────────────────────────
+const NAV_ITEMS = [
+  {id:'Dashboard', icon:'▦'},
+  {id:'Patients',  icon:'👥', badge:3},
+  {id:'Appointments', icon:'📅'},
+  {id:'Analytics', icon:'📊'},
+  {id:'Settings',  icon:'⚙'},
+]
+
+function Sidebar({active, onNav, onSignOut}) {
   return (
-    <div style={{flex:1,overflowY:'auto',padding:24}}>
-      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:24}}>
-        <h1 style={{fontSize:28,fontWeight:700,color:'#111',margin:0}}>Appointments</h1>
-        <div style={{display:'flex',gap:8}}>
-          <input placeholder="Search patients or doctor" style={{...inp,width:200,borderRadius:20,fontSize:12,padding:'6px 14px'}}/>
-          <select style={{padding:'6px 14px',border:'0.5px solid #d1d5db',borderRadius:20,background:'#fff',color:'#374151',fontSize:12,outline:'none'}}><option>Filter: This Week</option></select>
-          <select style={{padding:'6px 14px',border:'0.5px solid #d1d5db',borderRadius:20,background:'#fff',color:'#374151',fontSize:12,outline:'none'}}><option>Status: All</option><option>Booked</option><option>Completed</option><option>Missed</option></select>
-        </div>
+    <div style={{width:220,flexShrink:0,background:C.white,borderRight:`1px solid ${C.border}`,display:'flex',flexDirection:'column',height:'100vh',position:'fixed',left:0,top:0}}>
+      <div style={{padding:'20px 20px 16px'}}>
+        <div style={{fontSize:18,fontWeight:800,color:C.blueDark,letterSpacing:'-0.4px'}}>ClinicPulse</div>
+        <div style={{fontSize:10,color:C.muted,fontWeight:500,marginTop:2}}>Command Center</div>
       </div>
-      <div style={{...card,marginBottom:20}}>
-        <div style={{fontSize:14,fontWeight:500,color:'#111',marginBottom:14}}>Calendar View</div>
-        <div style={{display:'grid',gridTemplateColumns:'repeat(5,1fr)',gap:8}}>
-          {days.map(d=>(
-            <div key={d.day} style={{padding:'14px 16px',borderRadius:8,background:d.active?'#eff6ff':'#f9fafb',border:`0.5px solid ${d.active?'#93c5fd':'#e5e7eb'}`,cursor:'pointer'}}>
-              <div style={{fontSize:13,color:d.active?'#1d4ed8':'#374151',fontWeight:d.active?600:400}}>{d.day} {d.date}</div>
-              <div style={{fontSize:12,color:d.active?'#3b82f6':'#6b7280',marginTop:3}}>{d.count} Appointments</div>
+      <div style={{borderTop:`1px solid ${C.border}`,padding:'10px 10px',flex:1}}>
+        {NAV_ITEMS.map(n=>{
+          const isActive = active === n.id
+          return (
+            <div key={n.id} onClick={()=>onNav(n.id)} style={{display:'flex',alignItems:'center',gap:10,padding:'9px 10px',borderRadius:9,cursor:'pointer',marginBottom:2,background:isActive?C.blueSoft:'transparent',color:isActive?C.blue:C.label,fontWeight:isActive?600:400,fontSize:13,transition:'background 120ms',position:'relative'}}>
+              <span style={{fontSize:15}}>{n.icon}</span>
+              <span>{n.id}</span>
+              {n.badge&&!isActive&&<span style={{...pill(C.redSoft,C.red),padding:'1px 7px',fontSize:10,marginLeft:'auto'}}>{n.badge}</span>}
             </div>
-          ))}
-        </div>
+          )
+        })}
       </div>
-      <div style={card}>
-        <div style={{fontSize:14,fontWeight:500,color:'#111',marginBottom:14}}>Upcoming Appointments</div>
-        {appointments.map((a,i)=>(
-          <div key={i} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 0',borderBottom:i<appointments.length-1?'0.5px solid #f3f4f6':'none'}}>
-            <div style={{fontSize:13,color:'#374151'}}>
-              <span style={{fontWeight:500}}>{a.time}</span>
-              <span style={{color:'#9ca3af',margin:'0 6px'}}>•</span>
-              <span>{a.patient}</span>
-              <span style={{color:'#9ca3af',margin:'0 6px'}}>•</span>
-              <span style={{color:'#6b7280'}}>{a.doctor}</span>
-            </div>
-            <div style={{display:'flex',gap:8,alignItems:'center'}}>
-              <span style={{background:ss[a.status].bg,color:ss[a.status].color,padding:'3px 10px',borderRadius:4,fontSize:12,fontWeight:500}}>{a.status}</span>
-              <button style={{fontSize:12,padding:'4px 12px',border:'0.5px solid #d1d5db',borderRadius:6,background:'#fff',color:'#374151',cursor:'pointer'}}>Reschedule</button>
-              {a.status==='Booked'&&<button style={{fontSize:12,padding:'4px 12px',border:'0.5px solid #fca5a5',borderRadius:6,background:'#fff',color:'#ef4444',cursor:'pointer'}}>Cancel</button>}
-            </div>
+      <div style={{borderTop:`1px solid ${C.border}`,padding:'14px 10px'}}>
+        <div style={{display:'flex',alignItems:'center',gap:10,padding:'8px 10px',marginBottom:4}}>
+          <div style={{width:32,height:32,borderRadius:10,background:C.blueSoft,display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,fontWeight:700,color:C.blueDark,flexShrink:0}}>Dr</div>
+          <div>
+            <div style={{fontSize:12,fontWeight:600,color:C.body}}>Dr. Admin</div>
+            <div style={{fontSize:10,color:C.muted}}>Clinic Manager</div>
           </div>
-        ))}
+        </div>
+        <button onClick={onSignOut} style={{display:'flex',alignItems:'center',gap:8,padding:'8px 10px',borderRadius:9,cursor:'pointer',background:'none',border:'none',color:C.red,fontSize:13,fontWeight:500,width:'100%',transition:'background 120ms',fontFamily:'inherit'}}>
+          <span>↪</span> Sign out
+        </button>
       </div>
     </div>
   )
 }
 
-function AnalyticsPage({clients}) {
-  const totalRisk=clients.reduce((s,c)=>s+getRevenue(c),0)
-  const weeks=[18,21,19,24,28,25,31,35,38,42,47,52]
-  const maxW=Math.max(...weeks)
+// ─── Topbar ───────────────────────────────────────────────────────────────────
+function Topbar({page, notifCount=2}) {
   return (
-    <div style={{flex:1,overflowY:'auto',padding:24}}>
-      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:24}}>
-        <h1 style={{fontSize:28,fontWeight:700,color:'#111',margin:0}}>Analytics</h1>
-        <div style={{display:'flex',gap:8}}>
-          <div><div style={{fontSize:11,color:'#6b7280',marginBottom:4}}>Label Text</div><select style={{padding:'6px 12px',border:'0.5px solid #d1d5db',borderRadius:20,background:'#fff',color:'#374151',fontSize:12,outline:'none'}}><option>Select Option</option></select></div>
-          <div><div style={{fontSize:11,color:'#6b7280',marginBottom:4}}>Label Text</div><select style={{padding:'6px 12px',border:'0.5px solid #d1d5db',borderRadius:20,background:'#fff',color:'#374151',fontSize:12,outline:'none'}}><option>Select Option</option></select></div>
+    <div style={{height:58,background:C.white,borderBottom:`1px solid ${C.border}`,display:'flex',alignItems:'center',padding:'0 28px',gap:16,position:'fixed',top:0,left:220,right:0,zIndex:100}}>
+      <input placeholder="Search patients, treatments..." style={{...inp,width:280,borderRadius:10,background:'#f9fafb',fontSize:13,height:36,padding:'0 14px'}}/>
+      <div style={{marginLeft:'auto',display:'flex',alignItems:'center',gap:12}}>
+        <div style={{position:'relative',width:36,height:36,borderRadius:10,background:'#f9fafb',border:`1px solid ${C.border}`,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',fontSize:16}}>
+          🔔
+          {notifCount>0&&<span style={{position:'absolute',top:6,right:7,width:7,height:7,borderRadius:'50%',background:C.red,border:'1.5px solid #fff'}}/>}
         </div>
-      </div>
-      <div style={{...card,marginBottom:20,background:'linear-gradient(135deg,#eff6ff 0%,#dbeafe 100%)'}}>
-        <div style={{fontSize:14,fontWeight:500,color:'#1e3a8a',marginBottom:16}}>Revenue Trend</div>
-        <div style={{display:'flex',alignItems:'flex-end',gap:8,height:160,padding:'0 8px'}}>
-          {weeks.map((v,i)=>(
-            <div key={i} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:4}}>
-              <div style={{width:'100%',background:`hsl(${220-i*7},${55+i*3}%,${65-i*4}%)`,borderRadius:'4px 4px 0 0',height:`${(v/maxW)*140}px`,minHeight:8}}/>
-              <span style={{fontSize:9,color:'#6b7280'}}>W{i+1}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:20}}>
-        <div style={card}>
-          <div style={{fontSize:14,fontWeight:500,color:'#111',marginBottom:6}}>Patient Retention</div>
-          <div style={{fontSize:20,fontWeight:600,color:'#2563eb',marginBottom:8}}>78% returning in 90 days</div>
-          <div style={{height:6,background:'#f3f4f6',borderRadius:3}}><div style={{height:'100%',width:'78%',background:'#3b82f6',borderRadius:3}}/></div>
-        </div>
-        <div style={card}>
-          <div style={{fontSize:14,fontWeight:500,color:'#111',marginBottom:6}}>Conversion Mix</div>
-          <div style={{fontSize:13,color:'#6b7280',marginBottom:10}}>WhatsApp 72% | Call 64% | SMS 55%</div>
-          <div style={{display:'flex',flexDirection:'column',gap:6}}>
-            {[{l:'WhatsApp',p:72,c:'#3b82f6'},{l:'Call',p:64,c:'#22c55e'},{l:'SMS',p:55,c:'#8b5cf6'}].map(ch=>(
-              <div key={ch.l} style={{display:'flex',alignItems:'center',gap:8}}>
-                <span style={{fontSize:11,color:'#374151',width:64}}>{ch.l}</span>
-                <div style={{flex:1,height:6,background:'#f3f4f6',borderRadius:3}}><div style={{height:'100%',width:`${ch.p}%`,background:ch.c,borderRadius:3}}/></div>
-                <span style={{fontSize:11,color:ch.c,fontWeight:500,width:32}}>{ch.p}%</span>
-              </div>
-            ))}
+        <div style={{width:1,height:24,background:C.border}}/>
+        <div style={{display:'flex',alignItems:'center',gap:8}}>
+          <div style={{width:32,height:32,borderRadius:10,background:C.blueSoft,display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,fontWeight:700,color:C.blueDark}}>Dr</div>
+          <div>
+            <div style={{fontSize:12,fontWeight:600,color:C.body}}>Dr. Admin</div>
+            <div style={{fontSize:10,color:C.muted}}>Clinic Manager</div>
           </div>
         </div>
-      </div>
-      <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:12}}>
-        {[{label:'Total Patients',value:clients.length,color:'#1d4ed8',sub:'Active in system'},{label:'Revenue at Risk',value:`AED ${Math.round(totalRisk).toLocaleString()}`,color:'#b91c1c',sub:'Needs follow-up'},{label:'Avg Revenue/Patient',value:`AED ${clients.length?Math.round(totalRisk/clients.length):0}`,color:'#15803d',sub:'Per treatment'}].map(m=>(
-          <div key={m.label} style={card}>
-            <div style={{fontSize:11,color:'#6b7280',marginBottom:6,textTransform:'uppercase',letterSpacing:'0.04em'}}>{m.label}</div>
-            <div style={{fontSize:22,fontWeight:600,color:m.color}}>{m.value}</div>
-            <div style={{fontSize:11,color:'#9ca3af',marginTop:4}}>{m.sub}</div>
-          </div>
-        ))}
       </div>
     </div>
   )
 }
 
-function SettingsPage() {
-  const [clinicName,setClinicName]=useState('ClinicPulse Downtown')
-  const [contact,setContact]=useState('(555) 012-5541')
-  const [timezone,setTimezone]=useState('UTC-05:00')
-  const [saved,setSaved]=useState(false)
-  function save(){setSaved(true);setTimeout(()=>setSaved(false),2000)}
+// ─── KPI Card ─────────────────────────────────────────────────────────────────
+function KpiCard({label, value, color, subtext, bars}) {
   return (
-    <div style={{flex:1,overflowY:'auto',padding:24}}>
-      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:24}}>
-        <h1 style={{fontSize:28,fontWeight:700,color:'#111',margin:0}}>Settings</h1>
-        <div style={{display:'flex',gap:8}}>
-          <input placeholder="Search settings" style={{...inp,width:160,borderRadius:20,fontSize:12,padding:'6px 14px'}}/>
-          <select style={{padding:'6px 14px',border:'0.5px solid #d1d5db',borderRadius:20,background:'#fff',color:'#374151',fontSize:12,outline:'none'}}><option>Filter: General</option></select>
-        </div>
-      </div>
-      <div style={{...card,marginBottom:20}}>
-        <div style={{fontSize:14,fontWeight:600,color:'#111',marginBottom:14}}>Clinic Details</div>
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:16}}>
-          <div><label style={lbl}>Clinic Name</label><input style={inp} value={clinicName} onChange={e=>setClinicName(e.target.value)}/></div>
-          <div><label style={lbl}>Contact</label><input style={inp} value={contact} onChange={e=>setContact(e.target.value)}/></div>
-          <div><label style={lbl}>Timezone</label><select style={inp} value={timezone} onChange={e=>setTimezone(e.target.value)}><option>UTC-05:00</option><option>UTC+00:00</option><option>UTC+04:00</option><option>UTC+05:00</option><option>UTC+05:30</option></select></div>
-        </div>
-        <div style={{marginTop:14}}><button onClick={save} style={{background:saved?'#22c55e':'#2563eb',border:'none',color:'#fff',padding:'8px 20px',borderRadius:8,cursor:'pointer',fontSize:13,fontWeight:500}}>{saved?'Saved!':'Save Changes'}</button></div>
-      </div>
-      <div style={card}>
-        <div style={{fontSize:14,fontWeight:600,color:'#111',marginBottom:14}}>Notification & Integrations</div>
-        {[{label:'Appointment reminders',status:'Enabled',color:'#15803d'},{label:'Daily summary emails',status:'Enabled',color:'#15803d'},{label:'EHR Integration',status:'Connected',color:'#1d4ed8'},{label:'Billing Platform',status:'Not Connected',color:'#d97706'}].map((item,i,arr)=>(
-          <div key={item.label} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 0',borderBottom:i<arr.length-1?'0.5px solid #f3f4f6':'none'}}>
-            <span style={{fontSize:13,color:'#374151'}}>{item.label}</span>
-            <span style={{fontSize:13,fontWeight:500,color:item.color}}>{item.status}</span>
-          </div>
-        ))}
-      </div>
+    <div style={{...card,padding:'16px 18px',flex:1,minWidth:0}}>
+      <div style={{fontSize:11,color:C.muted,marginBottom:6,textTransform:'uppercase',letterSpacing:'0.06em',fontWeight:600}}>{label}</div>
+      <div style={{fontSize:22,fontWeight:700,color,letterSpacing:'-0.5px',marginBottom:6}}>{value}</div>
+      {bars&&<div style={{display:'flex',gap:3,height:4,marginBottom:6}}>{bars.map((b,i)=><span key={i} style={{flex:1,background:b,borderRadius:2}}/>)}</div>}
+      {subtext&&<div style={{fontSize:10,color:C.muted,fontWeight:500}}>{subtext}</div>}
     </div>
   )
 }
 
-function PatientsPage({clients,loading,error,showAdd,setShowAdd,sending,setSending,doing,setDoing,editRow,setEditRow,editV,setEditV,setClients,showToast,selected,setSelected}) {
+// ─── Dashboard Page ───────────────────────────────────────────────────────────
+function DashboardPage({clients, loading, error, onShowAdd, sending, setSending, doing, setDoing, editRow, setEditRow, editV, setEditV, setClients, showToast, selected, setSelected}) {
   const [search,setSearch]=useState('')
   const [fStage,setFStage]=useState('All')
   const [fStatus,setFStatus]=useState('All')
-  async function sendReminder(c,e) {
-    e.stopPropagation();setSending(c.Client_ID)
-    try { await fetch(REMIND_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({client_id:c.Client_ID,row_number:c.row_number,name:c.Full_Name,email:c.Email,treatment:c.Treatment_Type})}); showToast(`Reminder sent to ${c.Full_Name}`) }
-    catch { showToast('Failed','error') } finally { setSending(null) }
-  }
-  async function markDone(c,e) {
-    e.stopPropagation();setDoing(c.Client_ID)
-    try { const ds=new Date().toLocaleDateString('en-GB'); await fetch(UPDATE_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({row_number:c.row_number,field:'Last_Reminder_Sent',value:ds})}); setClients(cs=>cs.map(x=>x.Client_ID===c.Client_ID?{...x,Last_Reminder_Sent:ds}:x)); showToast(`Marked done for ${c.Full_Name}`) }
-    catch { showToast('Failed','error') } finally { setDoing(null) }
-  }
-  async function saveEdit(c,e) {
-    e.stopPropagation()
-    try { await fetch(UPDATE_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({row_number:c.row_number,...editV})}); setClients(cs=>cs.map(x=>x.Client_ID===c.Client_ID?{...x,...editV}:x)); if(selected?.Client_ID===c.Client_ID) setSelected(s=>({...s,...editV})); showToast('Client updated');setEditRow(null) }
-    catch { showToast('Failed','error') }
-  }
-  const sorted=[...clients].sort((a,b)=>getPriority(b).score-getPriority(a).score)
-  const filtered=sorted.filter(c=>{
-    const ms=!search||[c.Full_Name,c.Treatment_Type,c.Client_ID].some(v=>v?.toLowerCase().includes(search.toLowerCase()))
-    return ms&&(fStage==='All'||c.Reminder_Stage===fStage)&&(fStatus==='All'||c.Status===fStatus)
-  })
-  return (
-    <div style={{flex:1,overflowY:'auto',padding:24}}>
-      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:24}}>
-        <h1 style={{fontSize:28,fontWeight:700,color:'#111',margin:0}}>Patients</h1>
-        <button onClick={()=>setShowAdd(true)} style={{background:'#2563eb',border:'none',color:'#fff',padding:'8px 18px',borderRadius:20,cursor:'pointer',fontSize:13,fontWeight:500}}>+ Add Patient</button>
-      </div>
-      <div style={{display:'flex',gap:12,marginBottom:20,alignItems:'flex-end'}}>
-        <div style={{flex:1,maxWidth:280}}>
-          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search..." style={{...inp,borderRadius:20,paddingLeft:14}}/>
-        </div>
-        <div><div style={{fontSize:11,color:'#6b7280',marginBottom:4}}>Label Text</div><select value={fStage} onChange={e=>setFStage(e.target.value)} style={{padding:'6px 12px',border:'0.5px solid #d1d5db',borderRadius:20,background:'#fff',color:'#374151',fontSize:12,outline:'none'}}><option value="All">Select Option</option>{STAGES.map(s=><option key={s}>{s}</option>)}</select></div>
-        <div><div style={{fontSize:11,color:'#6b7280',marginBottom:4}}>Label Text</div><select value={fStatus} onChange={e=>setFStatus(e.target.value)} style={{padding:'6px 12px',border:'0.5px solid #d1d5db',borderRadius:20,background:'#fff',color:'#374151',fontSize:12,outline:'none'}}><option value="All">Select Option</option><option>Active</option><option>Lapsed</option></select></div>
-        <div><div style={{fontSize:11,color:'#6b7280',marginBottom:4}}>Label Text</div><select style={{padding:'6px 12px',border:'0.5px solid #d1d5db',borderRadius:20,background:'#fff',color:'#374151',fontSize:12,outline:'none'}}><option>Select Option</option>{TREATMENTS.map(t=><option key={t}>{t}</option>)}</select></div>
-      </div>
-      <div style={{...card,padding:0,overflow:'hidden'}}>
-        {loading?<div style={{padding:40,textAlign:'center',color:'#6b7280'}}>Loading...</div>:error?<div style={{padding:40,textAlign:'center',color:'#ef4444'}}>{error}</div>:(
-          <table style={{width:'100%',borderCollapse:'collapse',fontSize:13}}>
-            <thead><tr style={{borderBottom:'0.5px solid #e5e7eb'}}>{['Patient Name','Treatment','Status','Last Visit','Follow-up','Revenue','Actions'].map(h=><th key={h} style={{fontSize:11,color:'#6b7280',textAlign:'left',padding:'12px 16px',fontWeight:500,background:'#f9fafb'}}>{h}</th>)}</tr></thead>
-            <tbody>
-              {filtered.map((c,i)=>{
-                const pri=getPriority(c);const rev=getRevenue(c);const diff=dayDiff(c.Next_Reminder_Date)
-                const stage=STAGE_STYLE[c.Reminder_Stage]||{bg:'#f3f4f6',color:'#374151'}
-                const cid=c.Client_ID||`row-${i}`;const isEdit=editRow===cid
-                const td={padding:'12px 16px',borderBottom:'0.5px solid #f3f4f6',color:'#111',verticalAlign:'middle'}
-                return (
-                  <tr key={cid} onClick={()=>{if(!isEdit){setSelected(c===selected?null:c);setEditRow(null)}}} style={{cursor:'pointer',background:selected===c?'#f0f9ff':'#fff'}}>
-                    <td style={td}><div style={{fontWeight:500}}>{c.Full_Name}</div><div style={{fontSize:11,color:'#9ca3af'}}>{c.Client_ID}</div></td>
-                    <td style={{...td,fontSize:12,color:'#6b7280'}}>{c.Treatment_Type}</td>
-                    <td style={td}><span style={{background:stage.bg,color:stage.color,padding:'3px 8px',borderRadius:4,fontSize:11,fontWeight:500}}>{c.Reminder_Stage}</span></td>
-                    <td style={{...td,fontSize:12,color:'#6b7280'}}>{c.Treatment_Date||'—'}</td>
-                    <td style={td}>
-                      {isEdit?<input type="date" value={editV.Next_Reminder_Date?editV.Next_Reminder_Date.split('/').reverse().join('-'):''} onClick={e=>e.stopPropagation()} onChange={e=>{const p=e.target.value.split('-');setEditV(v=>({...v,Next_Reminder_Date:`${p[2]}/${p[1]}/${p[0]}`}))}} style={{...inp,fontSize:11,padding:'3px 6px'}}/>
-                      :<div style={{fontSize:11,color:diff!==null&&diff<0?'#ef4444':diff===0?'#22c55e':'#6b7280',fontWeight:diff!==null&&diff<=0?600:400}}>{diff===null?'Not set':diff===0?'Today':diff<0?`${Math.abs(diff)}d overdue`:`In ${diff}d`}{c.Next_Reminder_Date&&<div style={{fontSize:10,color:'#9ca3af'}}>{c.Next_Reminder_Date}</div>}</div>}
-                    </td>
-                    <td style={{...td,fontWeight:500}}>AED {rev.toLocaleString()}</td>
-                    <td style={td}>
-                      {isEdit?<div style={{display:'flex',gap:4}}><button onClick={e=>saveEdit(c,e)} style={{fontSize:11,padding:'4px 10px',border:'none',borderRadius:6,background:'#dcfce7',color:'#15803d',cursor:'pointer'}}>Save</button><button onClick={e=>{e.stopPropagation();setEditRow(null)}} style={{fontSize:11,padding:'4px 8px',border:'0.5px solid #d1d5db',borderRadius:6,background:'#fff',color:'#6b7280',cursor:'pointer'}}>×</button></div>
-                      :<div style={{display:'flex',gap:4}}>
-                        <button onClick={e=>sendReminder(c,e)} disabled={sending===c.Client_ID} style={{fontSize:11,padding:'4px 10px',border:'none',borderRadius:6,background:'#eff6ff',color:'#1d4ed8',cursor:'pointer',opacity:sending===c.Client_ID?0.5:1}}>{sending===c.Client_ID?'...':'+ WA'}</button>
-                        <button onClick={e=>markDone(c,e)} disabled={doing===c.Client_ID} style={{fontSize:11,padding:'4px 8px',border:'none',borderRadius:6,background:'#f0fdf4',color:'#15803d',cursor:'pointer',opacity:doing===c.Client_ID?0.5:1}}>{doing===c.Client_ID?'...':'✓'}</button>
-                        <button onClick={e=>{e.stopPropagation();setEditRow(isEdit?null:cid);setEditV({Reminder_Stage:c.Reminder_Stage,Next_Reminder_Date:c.Next_Reminder_Date||''})}} style={{fontSize:11,padding:'4px 8px',border:'0.5px solid #d1d5db',borderRadius:6,background:'#fff',color:'#6b7280',cursor:'pointer'}}>✎</button>
-                      </div>}
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        )}
-      </div>
-      {selected&&(
-        <div style={{position:'fixed',right:0,top:0,bottom:0,width:280,background:'#fff',borderLeft:'0.5px solid #e5e7eb',padding:20,overflowY:'auto',zIndex:100,boxShadow:'-4px 0 12px rgba(0,0,0,0.05)'}}>
-          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}><div style={{fontSize:15,fontWeight:600,color:'#111'}}>{selected.Full_Name}</div><button onClick={()=>setSelected(null)} style={{background:'none',border:'none',cursor:'pointer',color:'#6b7280',fontSize:20}}>×</button></div>
-          {[['Client ID',selected.Client_ID],['Treatment',selected.Treatment_Type],['WhatsApp',selected.WhatsApp_Number],['Email',selected.Email||'—'],['Status',selected.Status]].map(([k,v])=>(
-            <div key={k} style={{marginBottom:12}}><div style={{fontSize:11,color:'#6b7280',marginBottom:3}}>{k}</div><div style={{fontSize:13,color:'#111'}}>{v}</div></div>
-          ))}
-          <div style={{marginBottom:12}}><div style={{fontSize:11,color:'#6b7280',marginBottom:3}}>Stage</div><select value={editV.Reminder_Stage||selected.Reminder_Stage} onChange={e=>{setEditV(v=>({...v,Reminder_Stage:e.target.value}));setEditRow(selected.Client_ID)}} style={{...inp,fontSize:12}}>{STAGES.map(s=><option key={s}>{s}</option>)}</select></div>
-          <div style={{marginBottom:16}}><div style={{fontSize:11,color:'#6b7280',marginBottom:3}}>Next Follow-up</div><input type="date" value={editV.Next_Reminder_Date?editV.Next_Reminder_Date.split('/').reverse().join('-'):selected.Next_Reminder_Date?selected.Next_Reminder_Date.split('/').reverse().join('-'):''} onChange={e=>{const p=e.target.value.split('-');setEditV(v=>({...v,Next_Reminder_Date:`${p[2]}/${p[1]}/${p[0]}`}));setEditRow(selected.Client_ID)}} style={{...inp,fontSize:12}}/></div>
-          {editRow===selected.Client_ID&&<button onClick={e=>saveEdit(selected,e)} style={{width:'100%',background:'#2563eb',border:'none',color:'#fff',padding:'8px',borderRadius:8,cursor:'pointer',fontSize:13,fontWeight:500,marginBottom:12}}>Save Changes</button>}
-          <div><div style={{fontSize:11,color:'#6b7280',marginBottom:3}}>AI Recommendation</div><div style={{fontSize:12,color:'#374151',padding:'8px 10px',background:'#f0fdf4',borderRadius:6,border:'0.5px solid #bbf7d0'}}>{getAIMove(selected)}</div></div>
-        </div>
-      )}
-      {showAdd&&<AddModal onClose={()=>setShowAdd(false)} onAdd={c=>{const nc={Client_ID:`CLT-${crypto.randomUUID().slice(0,8)}`,...c,Status:'Active',Last_Reminder_Sent:'',Next_Reminder_Date:'',row_number:Date.now()+Math.random()};setClients(cs=>[...cs,nc]);showToast(`${c.Full_Name} added`);setTimeout(()=>setShowAdd(false),500)}}/>}
-    </div>
-  )
-}
-
-export default function Dashboard() {
-  const [clients,setClients]     = useState([])
-  const [loading,setLoading]     = useState(true)
-  const [error,setError]         = useState(null)
-  const [showAdd,setShowAdd]     = useState(false)
-  const [toast,setToast]         = useState(null)
-  const [sending,setSending]     = useState(null)
-  const [doing,setDoing]         = useState(null)
-  const [editRow,setEditRow]     = useState(null)
-  const [editV,setEditV]         = useState({})
-  const [activeNav,setActiveNav] = useState('Dashboard')
-  const [selected,setSelected]   = useState(null)
-
-  useEffect(()=>{
-    fetch(WEBHOOK_URL).then(r=>r.json()).then(d=>{setClients(Array.isArray(d)?d:[]);setLoading(false)}).catch(e=>{setError(e.message);setLoading(false)})
-  },[])
-
-  function showToast(msg,type='success'){setToast({msg,type})}
 
   async function sendReminder(c,e) {
     e.stopPropagation();setSending(c.Client_ID)
@@ -396,10 +270,6 @@ export default function Dashboard() {
     e.stopPropagation()
     try { await fetch(UPDATE_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({row_number:c.row_number,...editV})}); setClients(cs=>cs.map(x=>x.Client_ID===c.Client_ID?{...x,...editV}:x)); if(selected?.Client_ID===c.Client_ID) setSelected(s=>({...s,...editV})); showToast('Client updated');setEditRow(null) }
     catch { showToast('Failed','error') }
-  }
-  function handleAdd(form) {
-    const nc={Client_ID:`CLT-${crypto.randomUUID().slice(0,8)}`,...form,Status:'Active',Last_Reminder_Sent:'',Next_Reminder_Date:'',row_number:Date.now()+Math.random()}
-    setClients(cs=>[...cs,nc]);showToast(`${form.Full_Name} added`);setTimeout(()=>setShowAdd(false),500)
   }
 
   const sorted=[...clients].sort((a,b)=>getPriority(b).score-getPriority(a).score)
@@ -408,171 +278,663 @@ export default function Dashboard() {
   const lost=clients.filter(c=>c.Status==='Lapsed').reduce((s,c)=>s+getRevenue(c)*0.5,0)
   const actionQueue=clients.filter(c=>{const d=dayDiff(c.Next_Reminder_Date);return(d!==null&&d<=0)||c.Status==='Lapsed'}).length
   const topClient=sorted[0]
-  const navItems=['Dashboard','Patients','Appointments','Analytics','Settings']
+  const filtered=sorted.filter(c=>{
+    const ms=!search||[c.Full_Name,c.Treatment_Type,c.Client_ID].some(v=>v?.toLowerCase().includes(search.toLowerCase()))
+    return ms&&(fStage==='All'||c.Reminder_Stage===fStage)&&(fStatus==='All'||c.Status===fStatus)
+  })
+  const weeks=[18,21,19,24,28,25,31,35,38,42,47,52]
+  const maxW=Math.max(...weeks)
+  return (
+    <div style={{padding:28}}>
+      <div style={{marginBottom:6}}><span style={{fontSize:11,color:C.muted,textTransform:'uppercase',letterSpacing:'0.08em',fontWeight:600}}>Above the Fold</span></div>
+      <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',marginBottom:22}}>
+        <div>
+          <div style={{fontSize:26,fontWeight:800,color:C.body,letterSpacing:'-0.7px'}}>Clinic Command Center</div>
+          <div style={{fontSize:13,color:C.muted,marginTop:4}}>AI-powered revenue recovery, follow-ups, and appointment intelligence</div>
+        </div>
+        <div style={{display:'flex',gap:8,alignItems:'center'}}>
+          <select style={{padding:'7px 12px',border:`1px solid ${C.border}`,borderRadius:9,background:C.white,color:C.label,fontSize:12,outline:'none',fontFamily:'inherit'}}><option>Last 30 days</option><option>Last 12 weeks</option></select>
+          <select style={{padding:'7px 12px',border:`1px solid ${C.border}`,borderRadius:9,background:C.white,color:C.label,fontSize:12,outline:'none',fontFamily:'inherit'}}><option>All Departments</option></select>
+          <select style={{padding:'7px 12px',border:`1px solid ${C.border}`,borderRadius:9,background:C.white,color:C.label,fontSize:12,outline:'none',fontFamily:'inherit'}}><option>All Providers</option></select>
+          <button onClick={onShowAdd} style={{...btn(),padding:'8px 16px'}}>+ Add Client</button>
+        </div>
+      </div>
 
-  function DashboardPage() {
-    const [search,setSearch]=useState('')
-    const [fStage,setFStage]=useState('All')
-    const [fStatus,setFStatus]=useState('All')
-    const filtered=sorted.filter(c=>{
-      const ms=!search||[c.Full_Name,c.Treatment_Type,c.Client_ID].some(v=>v?.toLowerCase().includes(search.toLowerCase()))
-      return ms&&(fStage==='All'||c.Reminder_Stage===fStage)&&(fStatus==='All'||c.Status===fStatus)
-    })
-    return (
-      <div style={{flex:1,overflowY:'auto',padding:24}}>
-        <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',marginBottom:20}}>
-          <div>
-            <div style={{fontSize:24,fontWeight:700,color:'#111'}}>Clinic Command Center</div>
-            <div style={{fontSize:13,color:'#6b7280',marginTop:3}}>AI-powered revenue recovery, follow-ups, and appointment intelligence</div>
-          </div>
-          <div style={{display:'flex',gap:8,alignItems:'center'}}>
-            <select style={{padding:'6px 10px',border:'0.5px solid #d1d5db',borderRadius:8,background:'#fff',color:'#374151',fontSize:12,outline:'none'}}><option>All Clinics</option></select>
-            <select style={{padding:'6px 10px',border:'0.5px solid #d1d5db',borderRadius:8,background:'#fff',color:'#374151',fontSize:12,outline:'none'}}><option>Last 30 days</option><option>Last 12 weeks</option></select>
-            <select style={{padding:'6px 10px',border:'0.5px solid #d1d5db',borderRadius:8,background:'#fff',color:'#374151',fontSize:12,outline:'none'}}><option>All Treatments</option>{TREATMENTS.map(t=><option key={t}>{t}</option>)}</select>
-            <button onClick={()=>setShowAdd(true)} style={{background:'#2563eb',border:'none',color:'#fff',padding:'8px 16px',borderRadius:8,cursor:'pointer',fontSize:13,fontWeight:500}}>+ Add Client</button>
+      {topClient&&<div style={{background:'#fffbeb',border:`1px solid #fcd34d`,borderRadius:10,padding:'10px 18px',marginBottom:18,fontSize:13,color:'#92400e',fontWeight:500}}>⚡ Priority: <strong>{topClient.Full_Name}</strong> is {getPriority(topClient).sub}. Send reminder now to recover <strong>AED {getRevenue(topClient).toLocaleString()}</strong> today.</div>}
+
+      <div style={{display:'flex',gap:14,marginBottom:20}}>
+        <KpiCard label="Revenue at Risk"    value={`AED ${Math.round(totalRisk).toLocaleString()}`}    color={C.red}    bars={['#fecaca','#fca5a5','#ef4444',C.red,'#7f1d1d']}   subtext="Needs follow-up"/>
+        <KpiCard label="Recovered Revenue"  value={`AED ${Math.round(recovered).toLocaleString()}`}    color={C.green}  bars={['#bbf7d0','#86efac','#22c55e',C.green,'#14532d']}  subtext="From reminders sent"/>
+        <KpiCard label="Lost Revenue"       value={`AED ${Math.round(lost).toLocaleString()}`}         color={C.orange} bars={['#fed7aa','#fdba74','#fb923c',C.orange,'#9a3412']} subtext="Lapsed patients"/>
+        <KpiCard label="Active Follow-ups"  value={actionQueue}                                         color={C.teal}   bars={['#a5f3fc','#67e8f9','#22d3ee',C.teal,'#164e63']}  subtext="Action required"/>
+      </div>
+
+      <div style={{display:'flex',gap:16,marginBottom:20}}>
+        <div style={{...card,padding:'18px 20px',flex:1.8}}>
+          <div style={{fontSize:14,fontWeight:700,color:C.body,marginBottom:2}}>Revenue Trend</div>
+          <div style={{fontSize:11,color:C.muted,marginBottom:14}}>Last 12 weeks</div>
+          <div style={{display:'flex',alignItems:'flex-end',gap:5,height:120}}>
+            {weeks.map((v,i)=>(
+              <div key={i} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:3}}>
+                <div style={{width:'100%',background:`hsl(${220-i*6},${55+i*3}%,${62-i*3}%)`,borderRadius:'4px 4px 0 0',height:`${(v/maxW)*110}px`,minHeight:4,transition:'height 200ms'}}/>
+                <span style={{fontSize:9,color:C.muted}}>W{i+1}</span>
+              </div>
+            ))}
           </div>
         </div>
-        {topClient&&<div style={{background:'#fffbeb',border:'0.5px solid #fcd34d',borderRadius:8,padding:'10px 16px',marginBottom:16,fontSize:13,color:'#92400e'}}> ⚡ Priority: <strong>{topClient.Full_Name}</strong> is {getPriority(topClient).sub}. Send reminder now to recover <strong>AED {getRevenue(topClient).toLocaleString()}</strong> today.</div>}
-        <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:12,marginBottom:20}}>
-          {[{label:'Revenue at Risk',value:`AED ${Math.round(totalRisk).toLocaleString()}`,color:'#1d4ed8',bars:['#bfdbfe','#93c5fd','#3b82f6','#1d4ed8','#1e3a8a']},{label:'Recovered Revenue',value:`AED ${Math.round(recovered).toLocaleString()}`,color:'#15803d',bars:['#bbf7d0','#86efac','#22c55e','#15803d','#14532d']},{label:'Lost Revenue',value:`AED ${Math.round(lost).toLocaleString()}`,color:'#b91c1c',bars:['#fecaca','#fca5a5','#ef4444','#b91c1c','#7f1d1d']},{label:'Action Queue',value:actionQueue,color:'#1d4ed8',bars:['#bfdbfe','#93c5fd','#3b82f6','#1d4ed8','#1e3a8a']}].map(m=>(
-            <div key={m.label} style={{background:'#fff',border:'0.5px solid #e5e7eb',borderRadius:12,padding:'14px 16px'}}>
-              <div style={{fontSize:11,color:'#6b7280',marginBottom:6,textTransform:'uppercase',letterSpacing:'0.04em'}}>{m.label}</div>
-              <div style={{fontSize:22,fontWeight:600,color:m.color}}>{m.value}</div>
-              <div style={{display:'flex',gap:2,marginTop:8,height:4}}>{m.bars.map((b,i)=><span key={i} style={{flex:1,background:b,borderRadius:2}}/>)}</div>
+        <div style={{...card,padding:'18px 20px',flex:1}}>
+          <div style={{fontSize:14,fontWeight:700,color:C.body,marginBottom:2}}>Follow-up Conversions</div>
+          <div style={{fontSize:11,color:C.muted,marginBottom:14}}>Success rate by channel</div>
+          <div style={{display:'flex',flexDirection:'column',gap:11}}>
+            {[{label:'WhatsApp',pct:72,color:C.blue},{label:'Call',pct:64,color:C.green},{label:'SMS',pct:56,color:C.purple},{label:'Email',pct:38,color:C.muted}].map(ch=>(
+              <div key={ch.label}>
+                <div style={{display:'flex',justifyContent:'space-between',fontSize:12,marginBottom:4}}><span style={{color:C.label,fontWeight:500}}>{ch.label}</span><span style={{color:ch.color,fontWeight:600}}>{ch.pct}%</span></div>
+                <div style={{height:6,background:'#f3f4f6',borderRadius:3}}><div style={{height:'100%',width:`${ch.pct}%`,background:ch.color,borderRadius:3}}/></div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:20}}>
+        <div style={{...card,padding:'18px 20px'}}>
+          <div style={{fontSize:14,fontWeight:700,color:C.body,marginBottom:14}}>Patient Funnel</div>
+          <div style={{display:'flex',flexDirection:'column',gap:8}}>
+            {[{label:'Lead',count:clients.length,pct:100,color:'#bfdbfe',tc:C.blueDark},{label:'Appointment',count:Math.round(clients.length*0.82),pct:82,color:C.blue,tc:'#fff'},{label:'Visit',count:Math.round(clients.length*0.65),pct:65,color:C.blueDark,tc:'#fff'},{label:'Revenue',count:`AED ${Math.round(totalRisk*0.4).toLocaleString()}`,pct:40,color:'#1e3a8a',tc:'#fff'}].map(f=>(
+              <div key={f.label} style={{position:'relative',height:30,background:'#f3f4f6',borderRadius:6,overflow:'hidden'}}>
+                <div style={{position:'absolute',left:0,top:0,height:'100%',width:`${f.pct}%`,background:f.color,borderRadius:6,display:'flex',alignItems:'center',paddingLeft:12}}>
+                  <span style={{fontSize:12,fontWeight:600,color:f.tc}}>{f.label}</span>
+                </div>
+                <span style={{position:'absolute',right:12,top:'50%',transform:'translateY(-50%)',fontSize:12,color:C.muted}}>{f.count}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div style={{...card,padding:'18px 20px'}}>
+          <div style={{fontSize:14,fontWeight:700,color:C.body,marginBottom:14}}>Patient Segmentation</div>
+          <div style={{display:'flex',alignItems:'center',gap:20}}>
+            <div style={{flex:1}}>
+              {[{label:'New Patients',pct:42,color:C.blue},{label:'Returning',pct:40,color:C.green},{label:'At Risk',pct:6,color:C.amber},{label:'Lost',pct:12,color:C.red}].map(s=>(
+                <div key={s.label} style={{display:'flex',alignItems:'center',gap:8,marginBottom:10}}>
+                  <span style={{width:8,height:8,borderRadius:'50%',background:s.color,flexShrink:0,display:'inline-block'}}/>
+                  <span style={{fontSize:12,color:C.label,fontWeight:500}}>{s.label}</span>
+                  <span style={{fontSize:12,color:s.color,fontWeight:600,marginLeft:'auto'}}>{s.pct}%</span>
+                </div>
+              ))}
+            </div>
+            <div style={{position:'relative',width:90,height:90,flexShrink:0}}>
+              <svg viewBox="0 0 36 36" style={{width:90,height:90,transform:'rotate(-90deg)'}}>
+                <circle cx="18" cy="18" r="14" fill="none" stroke="#f3f4f6" strokeWidth="4"/>
+                <circle cx="18" cy="18" r="14" fill="none" stroke={C.blue}  strokeWidth="4" strokeDasharray="40 88" strokeDashoffset="0"/>
+                <circle cx="18" cy="18" r="14" fill="none" stroke={C.green} strokeWidth="4" strokeDasharray="40 88" strokeDashoffset="-40"/>
+                <circle cx="18" cy="18" r="14" fill="none" stroke={C.amber} strokeWidth="4" strokeDasharray="6 88"  strokeDashoffset="-80"/>
+                <circle cx="18" cy="18" r="14" fill="none" stroke={C.red}   strokeWidth="4" strokeDasharray="12 88" strokeDashoffset="-86"/>
+              </svg>
+              <div style={{position:'absolute',inset:0,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center'}}>
+                <span style={{fontSize:15,fontWeight:700,color:C.body}}>{clients.length}</span>
+                <span style={{fontSize:9,color:C.muted,fontWeight:500}}>Patients</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style={{...card,padding:'18px 20px'}}>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14}}>
+          <div style={{fontSize:15,fontWeight:700,color:C.body}}>Action Queue</div>
+          <div style={{display:'flex',gap:8}}>
+            <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search..." style={{...inp,width:180,height:32,padding:'0 12px',borderRadius:8,fontSize:12}}/>
+            <select value={fStage} onChange={e=>setFStage(e.target.value)} style={{padding:'6px 10px',border:`1px solid ${C.border}`,borderRadius:8,background:C.white,color:C.label,fontSize:12,outline:'none',fontFamily:'inherit'}}><option>All</option>{STAGES.map(s=><option key={s}>{s}</option>)}</select>
+            <select value={fStatus} onChange={e=>setFStatus(e.target.value)} style={{padding:'6px 10px',border:`1px solid ${C.border}`,borderRadius:8,background:C.white,color:C.label,fontSize:12,outline:'none',fontFamily:'inherit'}}><option>All</option><option>Active</option><option>Lapsed</option></select>
+          </div>
+        </div>
+        {loading?<div style={{padding:40,textAlign:'center',color:C.muted}}>Loading patients...</div>
+         :error?<div style={{padding:40,textAlign:'center',color:C.red}}>{error}</div>
+         :(
+          <table style={{width:'100%',borderCollapse:'collapse',fontSize:13}}>
+            <thead><tr>{['Patient','Priority','Next Action','Revenue','Quick Actions'].map(h=><th key={h} style={{fontSize:11,color:C.muted,textAlign:'left',padding:'8px 12px',borderBottom:`1px solid ${C.border}`,fontWeight:600,background:'#f9fafb'}}>{h}</th>)}</tr></thead>
+            <tbody>
+              {filtered.map((c,i)=>{
+                const pri=getPriority(c);const rev=getRevenue(c);const diff=dayDiff(c.Next_Reminder_Date)
+                const stage=STAGE_STYLE[c.Reminder_Stage]||{bg:'#f3f4f6',color:C.label}
+                const cid=c.Client_ID||`row-${i}`;const isEdit=editRow===cid
+                const td={padding:'11px 12px',borderBottom:`1px solid #f3f4f6`,color:C.body,verticalAlign:'middle'}
+                return (
+                  <tr key={cid} onClick={()=>{if(!isEdit){setSelected(c===selected?null:c);setEditRow(null)}}} style={{cursor:'pointer',background:selected===c?'#eff6ff':'#fff',transition:'background 120ms'}}>
+                    <td style={td}><div style={{fontWeight:600}}>{c.Full_Name}</div><div style={{fontSize:10,color:C.muted,marginTop:1}}>· {c.Client_ID}</div></td>
+                    <td style={td}><div style={{fontSize:11,fontWeight:700,color:pri.color}}>{pri.label}</div><div style={{fontSize:10,color:C.muted}}>{pri.sub}</div></td>
+                    <td style={{...td,fontSize:12,color:C.muted,maxWidth:180}}>{getAIMove(c)}</td>
+                    <td style={{...td,fontWeight:600}}>AED {rev.toLocaleString()}</td>
+                    <td style={td}>
+                      {isEdit
+                        ?<div style={{display:'flex',gap:4}}><button onClick={e=>saveEdit(c,e)} style={{fontSize:11,padding:'4px 10px',border:'none',borderRadius:7,background:C.greenSoft,color:C.green,cursor:'pointer',fontFamily:'inherit'}}>Save</button><button onClick={e=>{e.stopPropagation();setEditRow(null)}} style={{fontSize:11,padding:'4px 8px',border:`1px solid ${C.border}`,borderRadius:7,background:C.white,color:C.muted,cursor:'pointer',fontFamily:'inherit'}}>×</button></div>
+                        :<div style={{display:'flex',gap:4}}>
+                          <button onClick={e=>sendReminder(c,e)} disabled={sending===c.Client_ID} style={{fontSize:11,padding:'4px 10px',border:'none',borderRadius:7,background:C.blueSoft,color:C.blueDark,cursor:'pointer',opacity:sending===c.Client_ID?0.5:1,fontFamily:'inherit'}}>{sending===c.Client_ID?'...':'WA'}</button>
+                          <button onClick={e=>markDone(c,e)} disabled={doing===c.Client_ID} style={{fontSize:11,padding:'4px 8px',border:'none',borderRadius:7,background:C.greenSoft,color:C.green,cursor:'pointer',opacity:doing===c.Client_ID?0.5:1,fontFamily:'inherit'}}>{doing===c.Client_ID?'...':'✓'}</button>
+                          <button onClick={e=>{e.stopPropagation();setEditRow(isEdit?null:cid);setEditV({Reminder_Stage:c.Reminder_Stage,Next_Reminder_Date:c.Next_Reminder_Date||''})}} style={{fontSize:11,padding:'4px 8px',border:`1px solid ${C.border}`,borderRadius:7,background:C.white,color:C.muted,cursor:'pointer',fontFamily:'inherit'}}>✎</button>
+                        </div>}
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        )}
+        <div style={{padding:'10px 12px',borderTop:`1px solid ${C.border}`,fontSize:11,color:C.muted,display:'flex',justifyContent:'space-between',marginTop:4}}><span>Top-priority actions ranked by risk score and projected revenue.</span><span>{filtered.length} clients</span></div>
+      </div>
+
+      {selected&&(
+        <div style={{position:'fixed',right:0,top:0,bottom:0,width:290,background:C.white,borderLeft:`1px solid ${C.border}`,padding:20,overflowY:'auto',zIndex:200,boxShadow:'-4px 0 20px rgba(0,0,0,0.07)'}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:18}}>
+            <div style={{fontSize:15,fontWeight:700,color:C.body}}>{selected.Full_Name}</div>
+            <button onClick={()=>setSelected(null)} style={{background:'none',border:'none',cursor:'pointer',color:C.muted,fontSize:22,lineHeight:1}}>×</button>
+          </div>
+          {[['Client ID',selected.Client_ID],['Treatment',selected.Treatment_Type],['WhatsApp',selected.WhatsApp_Number],['Email',selected.Email||'—'],['Status',selected.Status]].map(([k,v])=>(
+            <div key={k} style={{marginBottom:14}}><div style={{fontSize:11,color:C.muted,marginBottom:3,fontWeight:600}}>{k}</div><div style={{fontSize:13,color:C.body}}>{v}</div></div>
+          ))}
+          <div style={{marginBottom:14}}><div style={{fontSize:11,color:C.muted,marginBottom:4,fontWeight:600}}>Stage</div><select value={editV.Reminder_Stage||selected.Reminder_Stage} onChange={e=>{setEditV(v=>({...v,Reminder_Stage:e.target.value}));setEditRow(selected.Client_ID)}} style={{...inp,fontSize:12}}>{STAGES.map(s=><option key={s}>{s}</option>)}</select></div>
+          <div style={{marginBottom:18}}><div style={{fontSize:11,color:C.muted,marginBottom:4,fontWeight:600}}>Next Follow-up</div><input type="date" value={editV.Next_Reminder_Date?editV.Next_Reminder_Date.split('/').reverse().join('-'):selected.Next_Reminder_Date?selected.Next_Reminder_Date.split('/').reverse().join('-'):''} onChange={e=>{const p=e.target.value.split('-');setEditV(v=>({...v,Next_Reminder_Date:`${p[2]}/${p[1]}/${p[0]}`}));setEditRow(selected.Client_ID)}} style={{...inp,fontSize:12}}/></div>
+          {editRow===selected.Client_ID&&<button onClick={e=>saveEdit(selected,e)} style={{...btn(),width:'100%',marginBottom:14}}>Save Changes</button>}
+          <div><div style={{fontSize:11,color:C.muted,marginBottom:4,fontWeight:600}}>AI Recommendation</div><div style={{fontSize:12,color:C.label,padding:'10px 12px',background:'#f0fdf4',borderRadius:8,border:`1px solid #bbf7d0`,lineHeight:1.5}}>{getAIMove(selected)}</div></div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── Patients Page ────────────────────────────────────────────────────────────
+function PatientsPage({clients,loading,error,showAdd,setShowAdd,sending,setSending,doing,setDoing,editRow,setEditRow,editV,setEditV,setClients,showToast,selected,setSelected}) {
+  const [search,setSearch]=useState('')
+  const [fStage,setFStage]=useState('All')
+  const [fStatus,setFStatus]=useState('All')
+
+  async function sendReminder(c,e) {
+    e.stopPropagation();setSending(c.Client_ID)
+    try { await fetch(REMIND_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({client_id:c.Client_ID,row_number:c.row_number,name:c.Full_Name,email:c.Email,treatment:c.Treatment_Type})}); showToast(`Reminder sent to ${c.Full_Name}`) }
+    catch { showToast('Failed','error') } finally { setSending(null) }
+  }
+  async function markDone(c,e) {
+    e.stopPropagation();setDoing(c.Client_ID)
+    try { const ds=new Date().toLocaleDateString('en-GB'); await fetch(UPDATE_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({row_number:c.row_number,field:'Last_Reminder_Sent',value:ds})}); setClients(cs=>cs.map(x=>x.Client_ID===c.Client_ID?{...x,Last_Reminder_Sent:ds}:x)); showToast(`Marked done for ${c.Full_Name}`) }
+    catch { showToast('Failed','error') } finally { setDoing(null) }
+  }
+  async function saveEdit(c,e) {
+    e.stopPropagation()
+    try { await fetch(UPDATE_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({row_number:c.row_number,...editV})}); setClients(cs=>cs.map(x=>x.Client_ID===c.Client_ID?{...x,...editV}:x)); if(selected?.Client_ID===c.Client_ID) setSelected(s=>({...s,...editV})); showToast('Client updated');setEditRow(null) }
+    catch { showToast('Failed','error') }
+  }
+
+  const sorted=[...clients].sort((a,b)=>getPriority(b).score-getPriority(a).score)
+  const filtered=sorted.filter(c=>{
+    const ms=!search||[c.Full_Name,c.Treatment_Type,c.Client_ID].some(v=>v?.toLowerCase().includes(search.toLowerCase()))
+    return ms&&(fStage==='All'||c.Reminder_Stage===fStage)&&(fStatus==='All'||c.Status===fStatus)
+  })
+  const activeCount=clients.filter(c=>c.Status!=='Lapsed').length
+  const atRiskCount=clients.filter(c=>{const d=dayDiff(c.Next_Reminder_Date);return d!==null&&d<0}).length
+
+  const summaryCards=[
+    {label:'Active',   value:activeCount,        color:C.green,  bg:C.greenSoft},
+    {label:'At Risk',  value:atRiskCount,         color:C.red,    bg:C.redSoft},
+    {label:'New',      value:Math.round(clients.length*0.18), color:C.teal,   bg:C.tealSoft},
+    {label:'Lost',     value:clients.filter(c=>c.Status==='Lapsed').length, color:C.muted, bg:'#f3f4f6'},
+    {label:'Returning',value:Math.round(clients.length*0.4),  color:C.blue,   bg:C.blueSoft},
+  ]
+
+  return (
+    <div style={{padding:28}}>
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:20}}>
+        <div>
+          <div style={{fontSize:26,fontWeight:800,color:C.body,letterSpacing:'-0.7px'}}>Patients</div>
+          <div style={{fontSize:13,color:C.muted,marginTop:3}}>{clients.length} total · {activeCount} active</div>
+        </div>
+        <button onClick={()=>setShowAdd(true)} style={btn()}>+ Add Patient</button>
+      </div>
+
+      <div style={{display:'flex',gap:12,marginBottom:20}}>
+        {summaryCards.map(s=>(
+          <div key={s.label} onClick={()=>s.label==='At Risk'?setFStatus('Lapsed'):setFStage('All')} style={{...card,padding:'14px 18px',flex:1,cursor:'pointer',transition:'box-shadow 120ms'}}>
+            <div style={{fontSize:11,color:C.muted,fontWeight:600,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:6}}>{s.label}</div>
+            <div style={{fontSize:22,fontWeight:700,color:s.color,letterSpacing:'-0.5px'}}>{s.value}</div>
+          </div>
+        ))}
+      </div>
+
+      <div style={{...card,padding:'14px 18px',marginBottom:16}}>
+        <div style={{display:'flex',gap:12,alignItems:'center'}}>
+          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search patients..." style={{...inp,flex:1,maxWidth:280,height:36,padding:'0 12px',borderRadius:9}}/>
+          <select value={fStage} onChange={e=>setFStage(e.target.value)} style={{padding:'7px 12px',border:`1px solid ${C.border}`,borderRadius:9,background:C.white,color:C.label,fontSize:12,outline:'none',fontFamily:'inherit'}}><option value="All">All Stages</option>{STAGES.map(s=><option key={s}>{s}</option>)}</select>
+          <select value={fStatus} onChange={e=>setFStatus(e.target.value)} style={{padding:'7px 12px',border:`1px solid ${C.border}`,borderRadius:9,background:C.white,color:C.label,fontSize:12,outline:'none',fontFamily:'inherit'}}><option value="All">All Status</option><option>Active</option><option>Lapsed</option></select>
+          {(search||fStage!=='All'||fStatus!=='All')&&<button onClick={()=>{setSearch('');setFStage('All');setFStatus('All')}} style={{fontSize:12,color:C.blue,background:'none',border:'none',cursor:'pointer',fontFamily:'inherit',fontWeight:500}}>Clear filters</button>}
+        </div>
+      </div>
+
+      <div style={{...card,padding:0,overflow:'hidden'}}>
+        {loading?<div style={{padding:48,textAlign:'center',color:C.muted}}>Loading...</div>
+         :error?<div style={{padding:48,textAlign:'center',color:C.red}}>{error}</div>
+         :(
+          <table style={{width:'100%',borderCollapse:'collapse',fontSize:13}}>
+            <thead><tr style={{borderBottom:`1px solid ${C.border}`}}>{['Patient Name','Treatment','Status','Last Visit','Follow-up','Revenue','Actions'].map(h=><th key={h} style={{fontSize:11,color:C.muted,textAlign:'left',padding:'12px 16px',fontWeight:600,background:'#f9fafb'}}>{h}</th>)}</tr></thead>
+            <tbody>
+              {filtered.map((c,i)=>{
+                const pri=getPriority(c);const rev=getRevenue(c);const diff=dayDiff(c.Next_Reminder_Date)
+                const stage=STAGE_STYLE[c.Reminder_Stage]||{bg:'#f3f4f6',color:C.label}
+                const cid=c.Client_ID||`row-${i}`;const isEdit=editRow===cid
+                const td={padding:'13px 16px',borderBottom:`1px solid #f3f4f6`,color:C.body,verticalAlign:'middle'}
+                return (
+                  <tr key={cid} onClick={()=>{if(!isEdit){setSelected(c===selected?null:c);setEditRow(null)}}} style={{cursor:'pointer',background:selected===c?'#eff6ff':'#fff',transition:'background 120ms'}}>
+                    <td style={td}><div style={{fontWeight:600}}>{c.Full_Name}</div><div style={{fontSize:11,color:C.muted}}>{c.Client_ID}</div></td>
+                    <td style={{...td,fontSize:12,color:C.muted}}>{c.Treatment_Type}</td>
+                    <td style={td}><span style={pill(stage.bg,stage.color)}>{c.Reminder_Stage}</span></td>
+                    <td style={{...td,fontSize:12,color:C.muted}}>{c.Treatment_Date||'—'}</td>
+                    <td style={td}>
+                      {isEdit
+                        ?<input type="date" value={editV.Next_Reminder_Date?editV.Next_Reminder_Date.split('/').reverse().join('-'):''} onClick={e=>e.stopPropagation()} onChange={e=>{const p=e.target.value.split('-');setEditV(v=>({...v,Next_Reminder_Date:`${p[2]}/${p[1]}/${p[0]}`}))}} style={{...inp,fontSize:11,padding:'4px 8px',width:130}}/>
+                        :<div style={{fontSize:12,color:diff!==null&&diff<0?C.red:diff===0?C.green:C.muted,fontWeight:diff!==null&&diff<=0?600:400}}>{diff===null?'Not set':diff===0?'Today':diff<0?`${Math.abs(diff)}d overdue`:`In ${diff}d`}{c.Next_Reminder_Date&&<div style={{fontSize:10,color:C.muted,fontWeight:400}}>{c.Next_Reminder_Date}</div>}</div>}
+                    </td>
+                    <td style={{...td,fontWeight:600}}>AED {rev.toLocaleString()}</td>
+                    <td style={td}>
+                      {isEdit
+                        ?<div style={{display:'flex',gap:4}}><button onClick={e=>saveEdit(c,e)} style={{fontSize:11,padding:'5px 10px',border:'none',borderRadius:7,background:C.greenSoft,color:C.green,cursor:'pointer',fontFamily:'inherit'}}>Save</button><button onClick={e=>{e.stopPropagation();setEditRow(null)}} style={{fontSize:11,padding:'5px 8px',border:`1px solid ${C.border}`,borderRadius:7,background:C.white,color:C.muted,cursor:'pointer',fontFamily:'inherit'}}>×</button></div>
+                        :<div style={{display:'flex',gap:4}}>
+                          <button onClick={e=>sendReminder(c,e)} disabled={sending===c.Client_ID} style={{fontSize:11,padding:'5px 10px',border:'none',borderRadius:7,background:C.blueSoft,color:C.blueDark,cursor:'pointer',opacity:sending===c.Client_ID?0.5:1,fontFamily:'inherit'}}>{sending===c.Client_ID?'...':'WA'}</button>
+                          <button onClick={e=>markDone(c,e)} disabled={doing===c.Client_ID} style={{fontSize:11,padding:'5px 8px',border:'none',borderRadius:7,background:C.greenSoft,color:C.green,cursor:'pointer',opacity:doing===c.Client_ID?0.5:1,fontFamily:'inherit'}}>{doing===c.Client_ID?'...':'✓'}</button>
+                          <button onClick={e=>{e.stopPropagation();setEditRow(isEdit?null:cid);setEditV({Reminder_Stage:c.Reminder_Stage,Next_Reminder_Date:c.Next_Reminder_Date||''})}} style={{fontSize:11,padding:'5px 8px',border:`1px solid ${C.border}`,borderRadius:7,background:C.white,color:C.muted,cursor:'pointer',fontFamily:'inherit'}}>✎</button>
+                        </div>}
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      {selected&&(
+        <div style={{position:'fixed',right:0,top:0,bottom:0,width:290,background:C.white,borderLeft:`1px solid ${C.border}`,padding:20,overflowY:'auto',zIndex:200,boxShadow:'-4px 0 20px rgba(0,0,0,0.07)'}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:18}}>
+            <div style={{fontSize:15,fontWeight:700,color:C.body}}>{selected.Full_Name}</div>
+            <button onClick={()=>setSelected(null)} style={{background:'none',border:'none',cursor:'pointer',color:C.muted,fontSize:22,lineHeight:1}}>×</button>
+          </div>
+          {[['Client ID',selected.Client_ID],['Treatment',selected.Treatment_Type],['WhatsApp',selected.WhatsApp_Number],['Email',selected.Email||'—'],['Status',selected.Status]].map(([k,v])=>(
+            <div key={k} style={{marginBottom:14}}><div style={{fontSize:11,color:C.muted,marginBottom:3,fontWeight:600}}>{k}</div><div style={{fontSize:13,color:C.body}}>{v}</div></div>
+          ))}
+          <div style={{marginBottom:14}}><div style={{fontSize:11,color:C.muted,marginBottom:4,fontWeight:600}}>Stage</div><select value={editV.Reminder_Stage||selected.Reminder_Stage} onChange={e=>{setEditV(v=>({...v,Reminder_Stage:e.target.value}));setEditRow(selected.Client_ID)}} style={{...inp,fontSize:12}}>{STAGES.map(s=><option key={s}>{s}</option>)}</select></div>
+          <div style={{marginBottom:18}}><div style={{fontSize:11,color:C.muted,marginBottom:4,fontWeight:600}}>Next Follow-up</div><input type="date" value={editV.Next_Reminder_Date?editV.Next_Reminder_Date.split('/').reverse().join('-'):selected.Next_Reminder_Date?selected.Next_Reminder_Date.split('/').reverse().join('-'):''} onChange={e=>{const p=e.target.value.split('-');setEditV(v=>({...v,Next_Reminder_Date:`${p[2]}/${p[1]}/${p[0]}`}));setEditRow(selected.Client_ID)}} style={{...inp,fontSize:12}}/></div>
+          {editRow===selected.Client_ID&&<button onClick={e=>saveEdit(selected,e)} style={{...btn(),width:'100%',marginBottom:14}}>Save Changes</button>}
+          <div><div style={{fontSize:11,color:C.muted,marginBottom:4,fontWeight:600}}>AI Recommendation</div><div style={{fontSize:12,color:C.label,padding:'10px 12px',background:'#f0fdf4',borderRadius:8,border:`1px solid #bbf7d0`,lineHeight:1.5}}>{getAIMove(selected)}</div></div>
+        </div>
+      )}
+      {showAdd&&<AddModal onClose={()=>setShowAdd(false)} onAdd={c=>{const nc={Client_ID:`CLT-${crypto.randomUUID().slice(0,8)}`,...c,Status:'Active',Last_Reminder_Sent:'',Next_Reminder_Date:'',row_number:Date.now()+Math.random()};setClients(cs=>[...cs,nc]);showToast(`${c.Full_Name} added`);setTimeout(()=>setShowAdd(false),500)}}/>}
+    </div>
+  )
+}
+
+// ─── Appointments Page ────────────────────────────────────────────────────────
+function AppointmentsPage() {
+  const APPTS=[
+    {time:'9:00 AM', patient:'Aarav Mehta',     doctor:'Dr. Sarah Khan',status:'Confirmed',   type:'Follow-up', dept:'Cardiology'},
+    {time:'10:30 AM',patient:'Sophia Reed',     doctor:'Dr. Priya Nair',status:'Confirmed',   type:'New Visit',  dept:'Dermatology'},
+    {time:'11:00 AM',patient:'Omar Al Farsi',   doctor:'Dr. Ali Raza',  status:'In Progress', type:'Check-up',   dept:'Cardiology'},
+    {time:'12:00 PM',patient:'Maya Collins',    doctor:'Dr. Sarah Khan',status:'Pending',     type:'Follow-up',  dept:'Orthopedics'},
+    {time:'2:00 PM', patient:'Leila Hassan',    doctor:'Dr. Priya Nair',status:'Confirmed',   type:'New Visit',  dept:'General'},
+    {time:'3:30 PM', patient:'Ravi Sharma',     doctor:'Dr. Ali Raza',  status:'Cancelled',   type:'Check-up',   dept:'Cardiology'},
+    {time:'4:00 PM', patient:'Fatima Al Zaabi', doctor:'Dr. Sarah Khan',status:'Confirmed',   type:'Follow-up',  dept:'Orthopedics'},
+  ]
+  const SS={'Confirmed':{bg:C.greenSoft,color:C.green},'In Progress':{bg:C.blueSoft,color:C.blueDark},'Pending':{bg:C.amberSoft,color:C.amber},'Cancelled':{bg:C.redSoft,color:C.red}}
+  const counts={Total:APPTS.length,Confirmed:APPTS.filter(a=>a.status==='Confirmed').length,'In Progress':APPTS.filter(a=>a.status==='In Progress').length,Pending:APPTS.filter(a=>a.status==='Pending').length,Cancelled:APPTS.filter(a=>a.status==='Cancelled').length}
+  return (
+    <div style={{padding:28}}>
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:20}}>
+        <div>
+          <div style={{fontSize:26,fontWeight:800,color:C.body,letterSpacing:'-0.7px'}}>Appointments</div>
+          <div style={{fontSize:13,color:C.muted,marginTop:3}}>{APPTS.filter(a=>a.status!=='Cancelled').length} appointments scheduled today</div>
+        </div>
+        <div style={{display:'flex',gap:8}}>
+          <select style={{padding:'8px 14px',border:`1px solid ${C.border}`,borderRadius:9,background:C.white,color:C.label,fontSize:12,outline:'none',fontFamily:'inherit'}}><option>Today — Apr 30</option></select>
+          <button style={btn()}>+ New Appointment</button>
+        </div>
+      </div>
+
+      <div style={{display:'flex',gap:12,marginBottom:20}}>
+        {Object.entries(counts).map(([k,v])=>(
+          <div key={k} style={{...card,padding:'14px 18px',flex:1,minWidth:0}}>
+            <div style={{fontSize:11,color:C.muted,fontWeight:600,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:6}}>{k}</div>
+            <div style={{fontSize:22,fontWeight:700,color:SS[k]?.color||C.body}}>{v}</div>
+          </div>
+        ))}
+      </div>
+
+      <div style={{...card,padding:0,overflow:'hidden'}}>
+        <table style={{width:'100%',borderCollapse:'collapse',fontSize:13}}>
+          <thead><tr style={{borderBottom:`1px solid ${C.border}`}}>{['Time','Patient','Doctor','Department','Type','Status','Actions'].map(h=><th key={h} style={{fontSize:11,color:C.muted,textAlign:'left',padding:'12px 16px',fontWeight:600,background:'#f9fafb'}}>{h}</th>)}</tr></thead>
+          <tbody>
+            {APPTS.map((a,i)=>{
+              const s=SS[a.status]||{bg:'#f3f4f6',color:C.muted}
+              const td={padding:'13px 16px',borderBottom:`1px solid #f3f4f6`,color:C.body,verticalAlign:'middle'}
+              return (
+                <tr key={i} style={{cursor:'pointer',background:C.white,transition:'background 120ms'}}>
+                  <td style={{...td,fontWeight:600,color:C.body,whiteSpace:'nowrap'}}>{a.time}</td>
+                  <td style={td}><div style={{fontWeight:600}}>{a.patient}</div></td>
+                  <td style={{...td,color:C.muted,fontSize:12}}>{a.doctor}</td>
+                  <td style={{...td,color:C.muted,fontSize:12}}>{a.dept}</td>
+                  <td style={{...td,color:C.muted,fontSize:12}}>{a.type}</td>
+                  <td style={td}><span style={pill(s.bg,s.color)}>{a.status}</span></td>
+                  <td style={td}>
+                    <div style={{display:'flex',gap:6}}>
+                      <button style={{fontSize:11,padding:'5px 10px',border:`1px solid ${C.border}`,borderRadius:7,background:C.white,color:C.label,cursor:'pointer',fontFamily:'inherit'}}>Edit</button>
+                      {a.status==='Confirmed'&&<button style={{fontSize:11,padding:'5px 10px',border:`1px solid #fca5a5`,borderRadius:7,background:C.white,color:C.red,cursor:'pointer',fontFamily:'inherit'}}>Cancel</button>}
+                    </div>
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+// ─── Analytics Page ───────────────────────────────────────────────────────────
+function AnalyticsPage({clients}) {
+  const totalRisk=clients.reduce((s,c)=>s+getRevenue(c),0)
+  const weeks=[18,21,19,24,28,25,31,35,38,42,47,52]
+  const maxW=Math.max(...weeks)
+  const kpis=[
+    {label:'Total Revenue',        value:'AED 684,200', change:'+14.2%', up:true},
+    {label:'Recovery Rate',        value:'52.8%',       change:'+6.1%',  up:true},
+    {label:'Avg Revenue/Patient',  value:`AED ${clients.length?Math.round(totalRisk/clients.length):0}`, change:'+9.3%', up:true},
+    {label:'Churn Rate',           value:'12%',         change:'-2.1%',  up:false},
+  ]
+  return (
+    <div style={{padding:28}}>
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:22}}>
+        <div>
+          <div style={{fontSize:26,fontWeight:800,color:C.body,letterSpacing:'-0.7px'}}>Analytics</div>
+          <div style={{fontSize:13,color:C.muted,marginTop:3}}>Performance overview and revenue insights</div>
+        </div>
+        <div style={{display:'flex',gap:8}}>
+          <select style={{padding:'7px 12px',border:`1px solid ${C.border}`,borderRadius:9,background:C.white,color:C.label,fontSize:12,outline:'none',fontFamily:'inherit'}}><option>Last 30 days</option><option>Last 12 weeks</option></select>
+          <select style={{padding:'7px 12px',border:`1px solid ${C.border}`,borderRadius:9,background:C.white,color:C.label,fontSize:12,outline:'none',fontFamily:'inherit'}}><option>All Departments</option></select>
+          <button style={{...btn('outline'),padding:'7px 14px'}}>↓ Export</button>
+        </div>
+      </div>
+
+      <div style={{display:'flex',gap:14,marginBottom:20}}>
+        {kpis.map(k=>(
+          <div key={k.label} style={{...card,padding:'16px 18px',flex:1}}>
+            <div style={{fontSize:11,color:C.muted,fontWeight:600,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:6}}>{k.label}</div>
+            <div style={{fontSize:22,fontWeight:700,color:C.body,letterSpacing:'-0.5px',marginBottom:6}}>{k.value}</div>
+            <div style={{fontSize:12,color:k.up?C.green:C.red,fontWeight:600}}>{k.up?'↑':'↓'} {k.change}</div>
+          </div>
+        ))}
+      </div>
+
+      <div style={{...card,padding:'20px 22px',marginBottom:20}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:16}}>
+          <div><div style={{fontSize:14,fontWeight:700,color:C.body}}>Revenue Trend</div><div style={{fontSize:11,color:C.muted,marginTop:2}}>Last 12 weeks</div></div>
+          <div style={{display:'flex',gap:16,fontSize:12}}>
+            <span style={{display:'flex',alignItems:'center',gap:6}}><span style={{width:20,height:3,background:C.blue,borderRadius:2,display:'inline-block'}}/><span style={{color:C.muted}}>Recovered</span></span>
+            <span style={{display:'flex',alignItems:'center',gap:6}}><span style={{width:20,height:3,background:C.red,borderRadius:2,display:'inline-block',opacity:0.6}}/><span style={{color:C.muted}}>At Risk</span></span>
+          </div>
+        </div>
+        <div style={{display:'flex',alignItems:'flex-end',gap:5,height:140}}>
+          {weeks.map((v,i)=>(
+            <div key={i} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:3}}>
+              <div style={{width:'100%',background:`hsl(${220-i*6},${55+i*3}%,${62-i*3}%)`,borderRadius:'4px 4px 0 0',height:`${(v/maxW)*130}px`,minHeight:4}}/>
+              <span style={{fontSize:9,color:C.muted}}>W{i+1}</span>
             </div>
           ))}
         </div>
-        <div style={{display:'grid',gridTemplateColumns:'3fr 2fr',gap:12,marginBottom:20}}>
-          <div style={card}>
-            <div style={{fontSize:14,fontWeight:500,color:'#111',marginBottom:3}}>Revenue Trend</div>
-            <div style={{fontSize:11,color:'#6b7280',marginBottom:14}}>Last 12 weeks</div>
-            <div style={{display:'flex',alignItems:'flex-end',gap:4,height:120}}>
-              {[18,21,19,24,28,25,31,35,38,42,47,52].map((v,i)=>(
-                <div key={i} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:2}}>
-                  <div style={{width:'100%',background:`hsl(${220-i*7},${55+i*3}%,${65-i*4}%)`,borderRadius:'3px 3px 0 0',height:`${(v/52)*100}%`,minHeight:4}}/>
-                  <span style={{fontSize:9,color:'#9ca3af'}}>W{i+1}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div style={card}>
-            <div style={{fontSize:14,fontWeight:500,color:'#111',marginBottom:3}}>Follow-up Conversions</div>
-            <div style={{fontSize:11,color:'#6b7280',marginBottom:14}}>Success rate by channel</div>
-            <div style={{display:'flex',flexDirection:'column',gap:10}}>
-              {[{label:'WhatsApp',pct:72,color:'#3b82f6'},{label:'Call',pct:64,color:'#22c55e'},{label:'SMS',pct:55,color:'#8b5cf6'},{label:'Email',pct:39,color:'#6b7280'}].map(ch=>(
-                <div key={ch.label}>
-                  <div style={{display:'flex',justifyContent:'space-between',fontSize:12,marginBottom:3}}><span style={{color:'#374151'}}>{ch.label}</span><span style={{color:ch.color,fontWeight:500}}>{ch.pct}%</span></div>
-                  <div style={{height:6,background:'#f3f4f6',borderRadius:3}}><div style={{height:'100%',width:`${ch.pct}%`,background:ch.color,borderRadius:3}}/></div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-        <div style={{fontSize:15,fontWeight:500,color:'#111',marginBottom:14}}>Patient Journey Insights</div>
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:20}}>
-          <div style={card}>
-            <div style={{fontSize:14,fontWeight:500,color:'#111',marginBottom:12}}>Patient Funnel</div>
-            <div style={{display:'flex',flexDirection:'column',gap:6}}>
-              {[{label:'Lead',count:clients.length,pct:100,color:'#bfdbfe',tc:'#1e3a8a'},{label:'Appointment',count:Math.round(clients.length*0.82),pct:82,color:'#3b82f6',tc:'#fff'},{label:'Visit',count:Math.round(clients.length*0.65),pct:65,color:'#1d4ed8',tc:'#fff'},{label:'Revenue',count:`AED ${Math.round(totalRisk*0.4).toLocaleString()}`,pct:40,color:'#1e3a8a',tc:'#fff'}].map(f=>(
-                <div key={f.label} style={{position:'relative',height:28,background:'#f3f4f6',borderRadius:4,overflow:'hidden'}}>
-                  <div style={{position:'absolute',left:0,top:0,height:'100%',width:`${f.pct}%`,background:f.color,borderRadius:4,display:'flex',alignItems:'center',paddingLeft:10}}>
-                    <span style={{fontSize:12,fontWeight:500,color:f.tc,whiteSpace:'nowrap'}}>{f.label}</span>
-                  </div>
-                  <span style={{position:'absolute',right:10,top:'50%',transform:'translateY(-50%)',fontSize:12,color:'#6b7280'}}>{f.count}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div style={card}>
-            <div style={{fontSize:14,fontWeight:500,color:'#111',marginBottom:12}}>Patient Segmentation</div>
-            <div style={{display:'flex',alignItems:'center',gap:16}}>
-              <div style={{flex:1}}>
-                {[{label:'New Patients',pct:42,color:'#22c55e'},{label:'Returning',pct:46,color:'#3b82f6'},{label:'Lost',pct:12,color:'#ef4444'}].map(s=>(
-                  <div key={s.label} style={{display:'flex',alignItems:'center',gap:8,marginBottom:10,fontSize:13}}>
-                    <span style={{width:8,height:8,borderRadius:'50%',background:s.color,flexShrink:0,display:'inline-block'}}/>
-                    <span style={{color:s.color,fontWeight:500}}>{s.label} {s.pct}%</span>
-                  </div>
-                ))}
-              </div>
-              <div style={{position:'relative',width:90,height:90,flexShrink:0}}>
-                <svg viewBox="0 0 36 36" style={{width:90,height:90,transform:'rotate(-90deg)'}}>
-                  <circle cx="18" cy="18" r="14" fill="none" stroke="#f3f4f6" strokeWidth="4"/>
-                  <circle cx="18" cy="18" r="14" fill="none" stroke="#3b82f6" strokeWidth="4" strokeDasharray="46 88" strokeDashoffset="0"/>
-                  <circle cx="18" cy="18" r="14" fill="none" stroke="#22c55e" strokeWidth="4" strokeDasharray="42 88" strokeDashoffset="-46"/>
-                  <circle cx="18" cy="18" r="14" fill="none" stroke="#ef4444" strokeWidth="4" strokeDasharray="12 88" strokeDashoffset="-88"/>
-                </svg>
-                <div style={{position:'absolute',inset:0,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center'}}>
-                  <span style={{fontSize:15,fontWeight:600,color:'#111'}}>{clients.length}</span>
-                  <span style={{fontSize:9,color:'#6b7280'}}>Patients</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div style={card}>
-          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14}}>
-            <div style={{fontSize:15,fontWeight:500,color:'#111'}}>Prioritized Patients</div>
-            <div style={{display:'flex',gap:8}}>
-              <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search..." style={{padding:'6px 10px',border:'0.5px solid #d1d5db',borderRadius:8,background:'#fff',color:'#374151',fontSize:12,outline:'none',width:160}}/>
-              <select value={fStage} onChange={e=>setFStage(e.target.value)} style={{padding:'6px 10px',border:'0.5px solid #d1d5db',borderRadius:8,background:'#fff',color:'#374151',fontSize:12,outline:'none'}}><option>All</option>{STAGES.map(s=><option key={s}>{s}</option>)}</select>
-              <select value={fStatus} onChange={e=>setFStatus(e.target.value)} style={{padding:'6px 10px',border:'0.5px solid #d1d5db',borderRadius:8,background:'#fff',color:'#374151',fontSize:12,outline:'none'}}><option>All</option><option>Active</option><option>Lapsed</option></select>
-            </div>
-          </div>
-          {loading?<div style={{padding:40,textAlign:'center',color:'#6b7280'}}>Loading...</div>:error?<div style={{padding:40,textAlign:'center',color:'#ef4444'}}>{error}</div>:(
-            <table style={{width:'100%',borderCollapse:'collapse',fontSize:13}}>
-              <thead><tr>{['Patient','Priority','Next Action','Stage','Follow-up','Revenue','Quick Actions'].map(h=><th key={h} style={{fontSize:11,color:'#6b7280',textAlign:'left',padding:'6px 10px',borderBottom:'0.5px solid #e5e7eb',fontWeight:400}}>{h}</th>)}</tr></thead>
-              <tbody>
-                {filtered.map((c,i)=>{
-                  const pri=getPriority(c);const rev=getRevenue(c);const diff=dayDiff(c.Next_Reminder_Date)
-                  const stage=STAGE_STYLE[c.Reminder_Stage]||{bg:'#f3f4f6',color:'#374151'}
-                  const cid=c.Client_ID||`row-${i}`;const isEdit=editRow===cid
-                  const td={padding:'10px 10px',borderBottom:'0.5px solid #e5e7eb',color:'#111',verticalAlign:'middle'}
-                  return (
-                    <tr key={cid} onClick={()=>{if(!isEdit){setSelected(c===selected?null:c);setEditRow(null)}}} style={{cursor:'pointer',background:selected===c?'#f0f9ff':'#fff'}}>
-                      <td style={td}><div style={{fontWeight:500}}>{c.Full_Name}</div><div style={{fontSize:10,color:'#9ca3af'}}>· {c.Client_ID}</div></td>
-                      <td style={td}><div style={{fontSize:11,fontWeight:700,color:pri.color}}>{pri.label}</div><div style={{fontSize:10,color:'#9ca3af'}}>{pri.sub}</div></td>
-                      <td style={{...td,fontSize:12,color:'#6b7280',maxWidth:180}}>{getAIMove(c)}</td>
-                      <td style={td}>{isEdit?<select value={editV.Reminder_Stage} onClick={e=>e.stopPropagation()} onChange={e=>setEditV(v=>({...v,Reminder_Stage:e.target.value}))} style={{background:'#f9fafb',border:'0.5px solid #d1d5db',borderRadius:4,color:'#111',fontSize:11,padding:'3px 5px',outline:'none'}}>{STAGES.map(s=><option key={s}>{s}</option>)}</select>:<span style={{background:stage.bg,color:stage.color,padding:'3px 8px',borderRadius:4,fontSize:10,fontWeight:500,whiteSpace:'nowrap'}}>{c.Reminder_Stage}</span>}</td>
-                      <td style={td}>{isEdit?<input type="date" value={editV.Next_Reminder_Date?editV.Next_Reminder_Date.split('/').reverse().join('-'):''} onClick={e=>e.stopPropagation()} onChange={e=>{const p=e.target.value.split('-');setEditV(v=>({...v,Next_Reminder_Date:`${p[2]}/${p[1]}/${p[0]}`}))}} style={{background:'#f9fafb',border:'0.5px solid #d1d5db',borderRadius:4,color:'#111',fontSize:11,padding:'3px 5px',outline:'none'}}/>:<div><div style={{fontSize:11,color:diff!==null&&diff<0?'#ef4444':diff===0?'#22c55e':'#6b7280',fontWeight:diff!==null&&diff<=0?600:400}}>{diff===null?'Not set':diff===0?'Today':diff<0?`Overdue · ${Math.abs(diff)}d`:`In ${diff}d`}</div>{c.Next_Reminder_Date&&<div style={{fontSize:10,color:'#9ca3af'}}>{c.Next_Reminder_Date}</div>}</div>}</td>
-                      <td style={{...td,fontWeight:500}}>AED {rev.toLocaleString()}</td>
-                      <td style={td}>{isEdit?<div style={{display:'flex',gap:4}}><button onClick={e=>saveEdit(c,e)} style={{fontSize:11,padding:'4px 8px',border:'none',borderRadius:6,background:'#dcfce7',color:'#15803d',cursor:'pointer'}}>Save</button><button onClick={e=>{e.stopPropagation();setEditRow(null)}} style={{fontSize:11,padding:'4px 8px',border:'0.5px solid #d1d5db',borderRadius:6,background:'#fff',color:'#6b7280',cursor:'pointer'}}>×</button></div>:<div style={{display:'flex',gap:4}}><button onClick={e=>sendReminder(c,e)} disabled={sending===c.Client_ID} style={{fontSize:11,padding:'4px 8px',border:'none',borderRadius:6,background:'#eff6ff',color:'#1d4ed8',cursor:'pointer',opacity:sending===c.Client_ID?0.5:1}}>{sending===c.Client_ID?'...':'+ WA'}</button><button onClick={e=>markDone(c,e)} disabled={doing===c.Client_ID} style={{fontSize:11,padding:'4px 8px',border:'none',borderRadius:6,background:'#f0fdf4',color:'#15803d',cursor:'pointer',opacity:doing===c.Client_ID?0.5:1}}>{doing===c.Client_ID?'...':'✓'}</button><button onClick={e=>{e.stopPropagation();setEditRow(isEdit?null:cid);setEditV({Reminder_Stage:c.Reminder_Stage,Next_Reminder_Date:c.Next_Reminder_Date||''})}} style={{fontSize:11,padding:'4px 8px',border:'0.5px solid #d1d5db',borderRadius:6,background:'#fff',color:'#6b7280',cursor:'pointer'}}>✎</button><button onClick={e=>{e.stopPropagation();setSelected(c===selected?null:c)}} style={{fontSize:11,padding:'4px 8px',border:'0.5px solid #d1d5db',borderRadius:6,background:'#fff',color:'#6b7280',cursor:'pointer'}}>→</button></div>}</td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          )}
-          <div style={{padding:'8px 10px',borderTop:'0.5px solid #e5e7eb',fontSize:11,color:'#9ca3af',display:'flex',justifyContent:'space-between',marginTop:4}}><span>Top-priority actions are ranked by risk score and projected revenue.</span><span>{filtered.length} clients</span></div>
-        </div>
-        {selected&&(
-          <div style={{position:'fixed',right:0,top:0,bottom:0,width:280,background:'#fff',borderLeft:'0.5px solid #e5e7eb',padding:20,overflowY:'auto',zIndex:100,boxShadow:'-4px 0 12px rgba(0,0,0,0.05)'}}>
-            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}><div style={{fontSize:15,fontWeight:600,color:'#111'}}>{selected.Full_Name}</div><button onClick={()=>setSelected(null)} style={{background:'none',border:'none',cursor:'pointer',color:'#6b7280',fontSize:20}}>×</button></div>
-            {[['Client ID',selected.Client_ID],['Treatment',selected.Treatment_Type],['WhatsApp',selected.WhatsApp_Number],['Email',selected.Email||'—'],['Status',selected.Status]].map(([k,v])=>(<div key={k} style={{marginBottom:12}}><div style={{fontSize:11,color:'#6b7280',marginBottom:3}}>{k}</div><div style={{fontSize:13,color:'#111'}}>{v}</div></div>))}
-            <div style={{marginBottom:12}}><div style={{fontSize:11,color:'#6b7280',marginBottom:3}}>Stage</div><select value={editV.Reminder_Stage||selected.Reminder_Stage} onChange={e=>{setEditV(v=>({...v,Reminder_Stage:e.target.value}));setEditRow(selected.Client_ID)}} style={{...inp,fontSize:12}}>{STAGES.map(s=><option key={s}>{s}</option>)}</select></div>
-            <div style={{marginBottom:16}}><div style={{fontSize:11,color:'#6b7280',marginBottom:3}}>Next Follow-up</div><input type="date" value={editV.Next_Reminder_Date?editV.Next_Reminder_Date.split('/').reverse().join('-'):selected.Next_Reminder_Date?selected.Next_Reminder_Date.split('/').reverse().join('-'):''} onChange={e=>{const p=e.target.value.split('-');setEditV(v=>({...v,Next_Reminder_Date:`${p[2]}/${p[1]}/${p[0]}`}));setEditRow(selected.Client_ID)}} style={{...inp,fontSize:12}}/></div>
-            {editRow===selected.Client_ID&&<button onClick={e=>saveEdit(selected,e)} style={{width:'100%',background:'#2563eb',border:'none',color:'#fff',padding:'8px',borderRadius:8,cursor:'pointer',fontSize:13,fontWeight:500,marginBottom:12}}>Save Changes</button>}
-            <div><div style={{fontSize:11,color:'#6b7280',marginBottom:3}}>AI Recommendation</div><div style={{fontSize:12,color:'#374151',padding:'8px 10px',background:'#f0fdf4',borderRadius:6,border:'0.5px solid #bbf7d0'}}>{getAIMove(selected)}</div></div>
-          </div>
-        )}
       </div>
-    )
-  }
 
+      <div style={{display:'flex',gap:16}}>
+        <div style={{...card,padding:'18px 20px',flex:1}}>
+          <div style={{fontSize:14,fontWeight:700,color:C.body,marginBottom:14}}>Conversion by Channel</div>
+          <div style={{display:'flex',flexDirection:'column',gap:12}}>
+            {[{label:'WhatsApp',pct:72,color:C.blue},{label:'Phone',pct:64,color:C.green},{label:'SMS',pct:56,color:C.purple},{label:'Email',pct:38,color:C.muted}].map(ch=>(
+              <div key={ch.label}>
+                <div style={{display:'flex',justifyContent:'space-between',fontSize:12,marginBottom:4}}><span style={{color:C.label,fontWeight:500}}>{ch.label}</span><span style={{color:ch.color,fontWeight:600}}>{ch.pct}%</span></div>
+                <div style={{height:8,background:'#f3f4f6',borderRadius:4}}><div style={{height:'100%',width:`${ch.pct}%`,background:ch.color,borderRadius:4}}/></div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div style={{...card,padding:'18px 20px',flex:1}}>
+          <div style={{fontSize:14,fontWeight:700,color:C.body,marginBottom:14}}>Revenue by Department</div>
+          <div style={{display:'flex',flexDirection:'column',gap:12}}>
+            {[{label:'Cardiology',value:'AED 210k',pct:80,color:C.blue},{label:'Orthopedics',value:'AED 185k',pct:70,color:C.teal},{label:'Dermatology',value:'AED 156k',pct:59,color:C.purple},{label:'General',value:'AED 133k',pct:51,color:C.green}].map(d=>(
+              <div key={d.label}>
+                <div style={{display:'flex',justifyContent:'space-between',fontSize:12,marginBottom:4}}><span style={{color:C.label,fontWeight:500}}>{d.label}</span><span style={{color:C.muted}}>{d.value}</span></div>
+                <div style={{height:8,background:'#f3f4f6',borderRadius:4}}><div style={{height:'100%',width:`${d.pct}%`,background:d.color,borderRadius:4}}/></div>
+              </div>
+            ))}
+          </div>
+          <div style={{marginTop:16,padding:'10px 14px',background:C.blueSoft,borderRadius:9,border:`1px solid #bfdbfe`}}>
+            <div style={{fontSize:12,fontWeight:600,color:C.blueDark}}>78% returning in 90 days</div>
+            <div style={{fontSize:11,color:C.blue,marginTop:2}}>Patient retention rate</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Settings Page ────────────────────────────────────────────────────────────
+function SettingsPage() {
+  const [tab,setTab]=useState('General')
+  const [clinicName,setClinicName]=useState('ClinicPulse Downtown')
+  const [contact,setContact]=useState('(555) 012-5541')
+  const [timezone,setTimezone]=useState('UTC+04:00')
+  const [editing,setEditing]=useState(false)
+  const [saved,setSaved]=useState(false)
+  const [notifs,setNotifs]=useState({apptReminders:true,dailySummary:true,weeklyReport:false,smsAlerts:true,emailDigest:false})
+  const [integrations,setIntegrations]=useState({ehr:true,billing:false,whatsapp:true,calendar:false})
+
+  function save(){setSaved(true);setEditing(false);setTimeout(()=>setSaved(false),2500)}
+
+  const tabs=['General','Notifications','Integrations','Security','Team']
+  const Toggle=({on,onToggle})=>(
+    <div onClick={onToggle} style={{width:40,height:22,borderRadius:11,background:on?C.blue:'#d1d5db',cursor:'pointer',position:'relative',transition:'background 200ms',flexShrink:0}}>
+      <div style={{position:'absolute',top:3,left:on?21:3,width:16,height:16,borderRadius:'50%',background:'#fff',transition:'left 200ms',boxShadow:'0 1px 3px rgba(0,0,0,0.2)'}}/>
+    </div>
+  )
+  const teamMembers=[
+    {name:'Dr. Sarah Khan',role:'Admin',email:'sarah@clinic.com',status:'Active'},
+    {name:'Dr. Ali Raza',  role:'Doctor',email:'ali@clinic.com',  status:'Active'},
+    {name:'Dr. Priya Nair',role:'Doctor',email:'priya@clinic.com',status:'Active'},
+    {name:'Nurse Aisha',   role:'Nurse', email:'aisha@clinic.com',status:'Active'},
+    {name:'John Smith',    role:'Front Desk',email:'john@clinic.com',status:'Invited'},
+  ]
   return (
-    <div style={{display:'flex',minHeight:'100vh',background:'#f5f6f7',fontFamily:'system-ui,sans-serif'}}>
-      {toast&&<Toast msg={toast.msg} type={toast.type} onDone={()=>setToast(null)}/>}
-      <div style={{width:160,flexShrink:0,background:'#fff',borderRight:'0.5px solid #e5e7eb',padding:'20px 0',display:'flex',flexDirection:'column'}}>
-        <div style={{fontSize:15,fontWeight:700,color:'#111',padding:'0 16px 16px',borderBottom:'0.5px solid #e5e7eb',marginBottom:12}}>ClinicPulse</div>
-        {navItems.map(n=>(
-          <div key={n} onClick={()=>{setActiveNav(n);setSelected(null)}} style={{padding:'8px 16px',fontSize:13,cursor:'pointer',color:activeNav===n?'#1d4ed8':'#6b7280',background:activeNav===n?'#eff6ff':'transparent',borderRight:activeNav===n?'2px solid #3b82f6':'2px solid transparent',fontWeight:activeNav===n?500:400}}>{n}</div>
+    <div style={{padding:28}}>
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:22}}>
+        <div style={{fontSize:26,fontWeight:800,color:C.body,letterSpacing:'-0.7px'}}>Settings</div>
+        {tab==='Team'&&<button style={btn()}>+ Invite Member</button>}
+      </div>
+      <div style={{display:'flex',gap:4,marginBottom:22,background:'#f3f4f6',borderRadius:11,padding:4,width:'fit-content'}}>
+        {tabs.map(t=>(
+          <button key={t} onClick={()=>setTab(t)} style={{padding:'7px 16px',borderRadius:8,border:'none',cursor:'pointer',fontSize:13,fontWeight:tab===t?600:400,background:tab===t?C.white:' transparent',color:tab===t?C.body:C.muted,boxShadow:tab===t?'0 1px 4px rgba(0,0,0,0.08)':'none',transition:'all 150ms',fontFamily:'inherit'}}>{t}</button>
         ))}
       </div>
-      {activeNav==='Dashboard'&&<DashboardPage/>}
-      {activeNav==='Patients'&&<PatientsPage clients={clients} loading={loading} error={error} showAdd={showAdd} setShowAdd={setShowAdd} sending={sending} setSending={setSending} doing={doing} setDoing={setDoing} editRow={editRow} setEditRow={setEditRow} editV={editV} setEditV={setEditV} setClients={setClients} showToast={showToast} selected={selected} setSelected={setSelected}/>}
-      {activeNav==='Appointments'&&<AppointmentsPage/>}
-      {activeNav==='Analytics'&&<AnalyticsPage clients={clients}/>}
-      {activeNav==='Settings'&&<SettingsPage/>}
-      {activeNav==='Dashboard'&&showAdd&&<AddModal onClose={()=>setShowAdd(false)} onAdd={handleAdd}/>}
+
+      {tab==='General'&&(
+        <div style={{display:'flex',flexDirection:'column',gap:16}}>
+          <div style={{...card,padding:'22px 24px'}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:18}}>
+              <div style={{fontSize:15,fontWeight:700,color:C.body}}>Clinic Details</div>
+              {!editing&&<button onClick={()=>setEditing(true)} style={{...btn('outline'),padding:'6px 14px'}}>Edit</button>}
+            </div>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:16,marginBottom:16}}>
+              <div><label style={lbl}>Clinic Name</label><input style={inp} value={clinicName} onChange={e=>setClinicName(e.target.value)} disabled={!editing}/></div>
+              <div><label style={lbl}>Contact</label><input style={inp} value={contact} onChange={e=>setContact(e.target.value)} disabled={!editing}/></div>
+              <div><label style={lbl}>Timezone</label><select style={inp} value={timezone} onChange={e=>setTimezone(e.target.value)} disabled={!editing}><option>UTC-05:00</option><option>UTC+00:00</option><option>UTC+04:00</option><option>UTC+05:00</option><option>UTC+05:30</option></select></div>
+            </div>
+            {editing&&<div style={{display:'flex',gap:8}}><button onClick={save} style={{...btn(),background:saved?C.green:C.blue}}>{saved?'Saved!':'Save Changes'}</button><button onClick={()=>setEditing(false)} style={btn('outline')}>Cancel</button></div>}
+          </div>
+          <div style={{...card,padding:'22px 24px'}}>
+            <div style={{fontSize:15,fontWeight:700,color:C.body,marginBottom:18}}>Working Hours</div>
+            {[{day:'Mon – Thu',open:'09:00',close:'18:00'},{day:'Friday',open:'09:00',close:'17:00'},{day:'Saturday',open:'10:00',close:'15:00'},{day:'Sunday',open:'',close:'',closed:true}].map(h=>(
+              <div key={h.day} style={{display:'flex',alignItems:'center',gap:16,padding:'12px 0',borderBottom:`1px solid #f3f4f6`}}>
+                <span style={{fontSize:13,color:C.label,fontWeight:500,width:90}}>{h.day}</span>
+                {h.closed?<span style={pill(C.redSoft,C.red)}>Closed</span>:<><input style={{...inp,width:100}} value={h.open} readOnly/><span style={{color:C.muted,fontSize:13}}>–</span><input style={{...inp,width:100}} value={h.close} readOnly/></>}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {tab==='Notifications'&&(
+        <div style={{...card,padding:'22px 24px'}}>
+          <div style={{fontSize:15,fontWeight:700,color:C.body,marginBottom:18}}>Notification Preferences</div>
+          {[['apptReminders','Appointment Reminders','Send automated reminders before appointments'],['dailySummary','Daily Summary Emails','Receive a daily digest of clinic activity'],['weeklyReport','Weekly Report','Weekly performance report every Monday'],['smsAlerts','SMS Alerts','Critical alerts via SMS'],['emailDigest','Email Digest','Periodic email summary of patient activity']].map(([k,label,desc])=>(
+            <div key={k} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 0',borderBottom:`1px solid #f3f4f6`}}>
+              <div><div style={{fontSize:13,fontWeight:500,color:C.body}}>{label}</div><div style={{fontSize:12,color:C.muted,marginTop:2}}>{desc}</div></div>
+              <Toggle on={notifs[k]} onToggle={()=>setNotifs(n=>({...n,[k]:!n[k]}))}/>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {tab==='Integrations'&&(
+        <div style={{...card,padding:'22px 24px'}}>
+          <div style={{fontSize:15,fontWeight:700,color:C.body,marginBottom:18}}>Connected Integrations</div>
+          {[['ehr','EHR Integration','Electronic health records system','Connected','🏥'],['billing','Billing Platform','Payment and invoicing system','Not Connected','💳'],['whatsapp','WhatsApp Business','Patient messaging via WhatsApp','Connected','💬'],['calendar','Google Calendar','Sync appointments with Google Calendar','Not Connected','📆']].map(([k,name,desc,status,icon])=>(
+            <div key={k} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'16px 0',borderBottom:`1px solid #f3f4f6`}}>
+              <div style={{display:'flex',alignItems:'center',gap:14}}>
+                <div style={{width:40,height:40,borderRadius:10,background:'#f3f4f6',display:'flex',alignItems:'center',justifyContent:'center',fontSize:20}}>{icon}</div>
+                <div>
+                  <div style={{fontSize:13,fontWeight:600,color:C.body}}>{name}</div>
+                  <div style={{fontSize:12,color:C.muted,marginTop:1}}>{desc}</div>
+                </div>
+              </div>
+              <div style={{display:'flex',alignItems:'center',gap:12}}>
+                <span style={pill(integrations[k]?C.greenSoft:C.redSoft, integrations[k]?C.green:C.red)}>{integrations[k]?'Connected':'Disconnected'}</span>
+                <Toggle on={integrations[k]} onToggle={()=>setIntegrations(i=>({...i,[k]:!i[k]}))}/>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {tab==='Security'&&(
+        <div style={{display:'flex',flexDirection:'column',gap:16}}>
+          <div style={{...card,padding:'22px 24px',maxWidth:520}}>
+            <div style={{fontSize:15,fontWeight:700,color:C.body,marginBottom:18}}>Change Password</div>
+            <div style={{display:'flex',flexDirection:'column',gap:12,marginBottom:16}}>
+              <div><label style={lbl}>Current Password</label><input style={inp} type="password" placeholder="••••••••"/></div>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+                <div><label style={lbl}>New Password</label><input style={inp} type="password" placeholder="••••••••"/></div>
+                <div><label style={lbl}>Confirm Password</label><input style={inp} type="password" placeholder="••••••••"/></div>
+              </div>
+            </div>
+            <button style={btn()}>Update Password</button>
+          </div>
+          <div style={{...card,padding:'22px 24px',maxWidth:520}}>
+            <div style={{fontSize:15,fontWeight:700,color:C.body,marginBottom:4}}>Two-Factor Authentication</div>
+            <div style={{fontSize:13,color:C.muted,marginBottom:16}}>Add an extra layer of security to your account.</div>
+            <button style={btn()}>Enable 2FA</button>
+          </div>
+        </div>
+      )}
+
+      {tab==='Team'&&(
+        <div style={{...card,padding:0,overflow:'hidden'}}>
+          <table style={{width:'100%',borderCollapse:'collapse',fontSize:13}}>
+            <thead><tr style={{borderBottom:`1px solid ${C.border}`}}>{['Member','Role','Email','Status','Actions'].map(h=><th key={h} style={{fontSize:11,color:C.muted,textAlign:'left',padding:'12px 18px',fontWeight:600,background:'#f9fafb'}}>{h}</th>)}</tr></thead>
+            <tbody>
+              {teamMembers.map((m,i)=>{
+                const td={padding:'14px 18px',borderBottom:`1px solid #f3f4f6`,color:C.body,verticalAlign:'middle'}
+                const initials=m.name.split(' ').map(p=>p[0]).join('').slice(0,2)
+                return (
+                  <tr key={i} style={{background:C.white}}>
+                    <td style={td}><div style={{display:'flex',alignItems:'center',gap:10}}><div style={{width:32,height:32,borderRadius:9,background:C.blueSoft,display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:700,color:C.blueDark,flexShrink:0}}>{initials}</div><span style={{fontWeight:600}}>{m.name}</span></div></td>
+                    <td style={{...td,color:C.muted,fontSize:12}}>{m.role}</td>
+                    <td style={{...td,color:C.muted,fontSize:12}}>{m.email}</td>
+                    <td style={td}><span style={pill(m.status==='Active'?C.greenSoft:C.amberSoft, m.status==='Active'?C.green:C.amber)}>{m.status}</span></td>
+                    <td style={td}><button style={{fontSize:12,padding:'5px 12px',border:`1px solid ${C.border}`,borderRadius:7,background:C.white,color:C.label,cursor:'pointer',fontFamily:'inherit'}}>Edit</button></td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── Login Screen ─────────────────────────────────────────────────────────────
+function LoginScreen({onLogin}) {
+  const [email,setEmail]=useState('')
+  const [password,setPassword]=useState('')
+  return (
+    <div style={{minHeight:'100vh',background:C.bg,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:"'Inter',system-ui,sans-serif"}}>
+      <div style={{...card,width:400,padding:'48px 44px',boxShadow:'0 8px 40px rgba(0,0,0,0.10)',borderRadius:20}}>
+        <div style={{textAlign:'center',marginBottom:32}}>
+          <div style={{fontSize:22,fontWeight:800,color:C.blueDark,letterSpacing:'-0.5px'}}>ClinicPulse</div>
+          <div style={{fontSize:13,color:C.muted,marginTop:6,fontWeight:500}}>Command Center Access</div>
+        </div>
+        <div style={{display:'flex',flexDirection:'column',gap:14,marginBottom:20}}>
+          <div>
+            <label style={lbl}>Email</label>
+            <input style={{...inp,height:44,padding:'0 14px',fontSize:14}} type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="doctor@clinic.com"/>
+          </div>
+          <div>
+            <label style={lbl}>Password</label>
+            <input style={{...inp,height:44,padding:'0 14px',fontSize:14}} type="password" value={password} onChange={e=>setPassword(e.target.value)} placeholder="••••••••" onKeyDown={e=>e.key==='Enter'&&onLogin()}/>
+          </div>
+        </div>
+        <button onClick={onLogin} style={{...btn(),width:'100%',padding:'13px',fontSize:15,fontWeight:700,borderRadius:11,letterSpacing:'-0.2px'}}>Sign In</button>
+        <div style={{textAlign:'center',marginTop:16,fontSize:12,color:C.muted}}>Forgot password? <span style={{color:C.blue,cursor:'pointer',fontWeight:500}}>Reset</span></div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Root App ─────────────────────────────────────────────────────────────────
+export default function App() {
+  const [loggedIn,setLoggedIn]       = useState(false)
+  const [showLogout,setShowLogout]   = useState(false)
+  const [clients,setClients]         = useState([])
+  const [loading,setLoading]         = useState(true)
+  const [error,setError]             = useState(null)
+  const [showAdd,setShowAdd]         = useState(false)
+  const [toast,setToast]             = useState(null)
+  const [sending,setSending]         = useState(null)
+  const [doing,setDoing]             = useState(null)
+  const [editRow,setEditRow]         = useState(null)
+  const [editV,setEditV]             = useState({})
+  const [activeNav,setActiveNav]     = useState('Dashboard')
+  const [selected,setSelected]       = useState(null)
+
+  useEffect(()=>{
+    fetch(WEBHOOK_URL).then(r=>r.json()).then(d=>{setClients(Array.isArray(d)?d:[]);setLoading(false)}).catch(e=>{setError(e.message);setLoading(false)})
+  },[])
+
+  function showToast(msg, type='success') { setToast({msg,type}) }
+  function handleNav(page) { setActiveNav(page); setSelected(null) }
+
+  if (!loggedIn) return <LoginScreen onLogin={()=>setLoggedIn(true)}/>
+
+  const sharedProps = { clients,loading,error,sending,setSending,doing,setDoing,editRow,setEditRow,editV,setEditV,setClients,showToast,selected,setSelected }
+
+  return (
+    <div style={{display:'flex',minHeight:'100vh',background:C.bg,fontFamily:"'Inter',system-ui,sans-serif"}}>
+      {toast&&<Toast msg={toast.msg} type={toast.type} onDone={()=>setToast(null)}/>}
+      {showLogout&&<LogoutModal onConfirm={()=>{setLoggedIn(false);setShowLogout(false)}} onCancel={()=>setShowLogout(false)}/>}
+      <Sidebar active={activeNav} onNav={handleNav} onSignOut={()=>setShowLogout(true)}/>
+      <div style={{marginLeft:220,flex:1,display:'flex',flexDirection:'column',minHeight:'100vh'}}>
+        <Topbar page={activeNav}/>
+        <div style={{marginTop:58,flex:1}}>
+          {activeNav==='Dashboard'&&<DashboardPage {...sharedProps} onShowAdd={()=>setShowAdd(true)}/>}
+          {activeNav==='Patients'&&<PatientsPage {...sharedProps} showAdd={showAdd} setShowAdd={setShowAdd}/>}
+          {activeNav==='Appointments'&&<AppointmentsPage/>}
+          {activeNav==='Analytics'&&<AnalyticsPage clients={clients}/>}
+          {activeNav==='Settings'&&<SettingsPage/>}
+        </div>
+      </div>
+      {activeNav==='Dashboard'&&showAdd&&<AddModal onClose={()=>setShowAdd(false)} onAdd={c=>{const nc={Client_ID:`CLT-${crypto.randomUUID().slice(0,8)}`,...c,Status:'Active',Last_Reminder_Sent:'',Next_Reminder_Date:'',row_number:Date.now()+Math.random()};setClients(cs=>[...cs,nc]);showToast(`${c.Full_Name} added`);setShowAdd(false)}}/>}
     </div>
   )
 }
