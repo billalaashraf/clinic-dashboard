@@ -182,7 +182,7 @@ const NAV_ITEMS = [
 
 function Sidebar({active, onNav, onSignOut}) {
   return (
-    <div style={{width:220,flexShrink:0,background:C.white,borderRight:`1px solid ${C.border}`,display:'flex',flexDirection:'column',height:'100vh',position:'fixed',left:0,top:0}}>
+    <div style={{width:220,flexShrink:0,background:C.white,borderRight:`1px solid ${C.border}`,display:'flex',flexDirection:'column',height:'100vh',position:'sticky',top:0,alignSelf:'flex-start'}}>
       <div style={{padding:'20px 20px 16px'}}>
         <div style={{fontSize:18,fontWeight:800,color:C.blueDark,letterSpacing:'-0.4px'}}>ClinicPulse</div>
         <div style={{fontSize:10,color:C.muted,fontWeight:500,marginTop:2}}>Command Center</div>
@@ -218,7 +218,7 @@ function Sidebar({active, onNav, onSignOut}) {
 // ─── Topbar ───────────────────────────────────────────────────────────────────
 function Topbar({page, notifCount=2}) {
   return (
-    <div style={{height:58,background:C.white,borderBottom:`1px solid ${C.border}`,display:'flex',alignItems:'center',padding:'0 28px',gap:16,position:'fixed',top:0,left:220,right:0,zIndex:100}}>
+    <div style={{height:58,background:C.white,borderBottom:`1px solid ${C.border}`,display:'flex',alignItems:'center',padding:'0 28px',gap:16,flexShrink:0,position:'sticky',top:0,zIndex:10}}>
       <input placeholder="Search patients, treatments..." style={{...inp,width:280,borderRadius:10,background:'#f9fafb',fontSize:13,height:36,padding:'0 14px'}}/>
       <div style={{marginLeft:'auto',display:'flex',alignItems:'center',gap:12}}>
         <div style={{position:'relative',width:36,height:36,borderRadius:10,background:'#f9fafb',border:`1px solid ${C.border}`,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',fontSize:16}}>
@@ -920,13 +920,13 @@ export default function App() {
   const sharedProps = { clients,loading,error,sending,setSending,doing,setDoing,editRow,setEditRow,editV,setEditV,setClients,showToast,selected,setSelected }
 
   return (
-    <div style={{display:'flex',minHeight:'100vh',background:C.bg,fontFamily:"'Inter',system-ui,sans-serif"}}>
+    <div style={{display:'flex',height:'100vh',overflow:'hidden',background:C.bg,fontFamily:"'Inter',system-ui,sans-serif"}}>
       {toast&&<Toast msg={toast.msg} type={toast.type} onDone={()=>setToast(null)}/>}
       {showLogout&&<LogoutModal onConfirm={()=>{setLoggedIn(false);setShowLogout(false)}} onCancel={()=>setShowLogout(false)}/>}
       <Sidebar active={activeNav} onNav={handleNav} onSignOut={()=>setShowLogout(true)}/>
-      <div style={{marginLeft:220,flex:1,display:'flex',flexDirection:'column',minHeight:'100vh'}}>
+      <div style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}}>
         <Topbar page={activeNav}/>
-        <div style={{marginTop:58,flex:1}}>
+        <div style={{flex:1,overflowY:'auto'}}>
           {activeNav==='Dashboard'&&<DashboardPage {...sharedProps} onShowAdd={()=>setShowAdd(true)}/>}
           {activeNav==='Patients'&&<PatientsPage {...sharedProps} showAdd={showAdd} setShowAdd={setShowAdd}/>}
           {activeNav==='Appointments'&&<AppointmentsPage/>}
