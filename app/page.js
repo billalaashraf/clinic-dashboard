@@ -145,9 +145,11 @@ function AddModal({onClose, onAdd}) {
     try {
       const res  = await fetch(ADD_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(f)})
       const data = await res.json().catch(()=>({}))
+      console.log('[AddModal] response', res.status, data)
+      if (!res.ok) throw new Error(data.error || data.detail || `Server error ${res.status}`)
       onAdd(f, data.row_number ?? null)
     }
-    catch { setErr('Failed to add client.') }
+    catch(e) { console.error('[AddModal] failed:', e); setErr(e.message||'Failed to add client.') }
     finally { setSaving(false) }
   }
   const sect = {fontSize:10,color:C.muted,textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:10,paddingBottom:6,borderBottom:`1px solid ${C.border}`,fontWeight:600}
