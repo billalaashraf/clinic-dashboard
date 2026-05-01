@@ -1042,7 +1042,7 @@ function ProfilePage({darkMode, setDarkMode, avatar, setAvatar}) {
 
   function handleAvatarChange(e) {
     const file = e.target.files?.[0]
-    if (file) { const r=new FileReader(); r.onload=ev=>{localStorage.setItem('clinicAvatar',ev.target.result);setAvatar(ev.target.result)}; r.readAsDataURL(file) }
+    if (file) { const r=new FileReader(); r.onload=ev=>{if(typeof window!=='undefined')localStorage.setItem('clinicAvatar',ev.target.result);setAvatar(ev.target.result)}; r.readAsDataURL(file) }
   }
   function saveProfile(){setSaved(true);setTimeout(()=>setSaved(false),2500)}
 
@@ -1080,7 +1080,7 @@ function ProfilePage({darkMode, setDarkMode, avatar, setAvatar}) {
             <label style={{...btn(),padding:'6px 14px',fontSize:12,cursor:'pointer'}}>
               Upload photo<input type="file" accept="image/*" style={{display:'none'}} onChange={handleAvatarChange}/>
             </label>
-            {avatar&&<button onClick={()=>{localStorage.removeItem('clinicAvatar');setAvatar(null)}} style={{...btn('outline'),padding:'6px 14px',fontSize:12}}>Remove</button>}
+            {avatar&&<button onClick={()=>{if(typeof window!=='undefined')localStorage.removeItem('clinicAvatar');setAvatar(null)}} style={{...btn('outline'),padding:'6px 14px',fontSize:12}}>Remove</button>}
           </div>
         </div>
       </div>
@@ -1253,7 +1253,7 @@ export default function App() {
   const [navSearch,setNavSearch]     = useState('')
   const [notifs,setNotifs]           = useState(SAMPLE_NOTIFS)
   const [darkMode,setDarkMode]       = useState(false)
-  const [avatar,setAvatar]           = useState(()=>localStorage.getItem('clinicAvatar')||null)
+  const [avatar,setAvatar]           = useState(()=>typeof window!=='undefined'?localStorage.getItem('clinicAvatar')||null:null)
 
   useEffect(()=>{
     fetch(WEBHOOK_URL).then(r=>r.json()).then(d=>{setClients(Array.isArray(d)?d:[]);setLoading(false)}).catch(e=>{setError(e.message);setLoading(false)})
