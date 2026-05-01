@@ -241,12 +241,12 @@ function Sidebar({active, onNav, onSignOut}) {
 
 // ─── Topbar ───────────────────────────────────────────────────────────────────
 const SAMPLE_NOTIFS = [
-  {id:1, type:'critical',     title:'Critical: Aarav Mehta overdue',          body:'No contact in 14 days. Revenue at risk: AED 12,400.',         time:'2m ago',   unread:true},
-  {id:2, type:'revenue',      title:'Revenue recovered — AED 8,220',          body:'Sophia Reed confirmed appointment via WhatsApp.',              time:'18m ago',  unread:true},
-  {id:3, type:'appointments', title:'New appointment booked',                  body:'Omar Al Farsi — Dr. Ali Raza, today 11:00 AM.',               time:'1h ago',   unread:true},
-  {id:4, type:'critical',     title:'At-risk patient: Ravi Sharma',           body:'Last visit was 57 days ago. Recommend outreach.',             time:'3h ago',   unread:false},
-  {id:5, type:'revenue',      title:'Weekly analytics report ready',          body:'Revenue up 14.2% vs last period. View full report.',          time:'5h ago',   unread:false},
-  {id:6, type:'system',       title:'EHR integration reconnected',            body:'Sync resumed after brief interruption.',                      time:'Yesterday',unread:false},
+  {id:1, type:'reminder',     title:'Sara Ahmed — reminder sent',             body:'WhatsApp reminder delivered successfully. Botox follow-up.',   time:'4m ago',   unread:true},
+  {id:2, type:'critical',     title:'3 clients lapsed today',                 body:'Aarav Mehta, Priya Nair, Carlos Vega marked as Lapsed.',       time:'9m ago',   unread:true},
+  {id:3, type:'revenue',      title:'Ravi Sharma rebooked — AED 5,300',       body:'Confirmed via WhatsApp after win-back reminder.',              time:'1h ago',   unread:true},
+  {id:4, type:'appointments', title:'Maya Collins — appointment today 2 PM',  body:'HydraFacial with Dr. Patel. Check prep notes.',               time:'2h ago',   unread:false},
+  {id:5, type:'critical',     title:'Omar Al Farsi — 12 days overdue',        body:'No response to last 2 reminders. AED 6,850 at risk.',         time:'3h ago',   unread:false},
+  {id:6, type:'system',       title:'Daily lapsed check completed',           body:'42 clients checked. 3 newly lapsed, 0 errors.',               time:'Yesterday',unread:false},
 ]
 
 function Topbar({page, search, setSearch, onNav, onSignOut, notifs, setNotifs}) {
@@ -278,9 +278,15 @@ function Topbar({page, search, setSearch, onNav, onSignOut, notifs, setNotifs}) 
 
         {/* Bell */}
         <div data-dropdown="notifs" style={{position:'relative'}}>
-          <div onClick={()=>{setShowNotifs(v=>!v);setShowUser(false)}} style={{width:36,height:36,borderRadius:10,background:'var(--c-input-bg)',border:`1px solid ${C.border}`,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',fontSize:16,position:'relative'}}>
-            🔔
-            {unreadCount>0&&<span style={{position:'absolute',top:6,right:7,width:7,height:7,borderRadius:'50%',background:C.red,border:'1.5px solid #fff'}}/>}
+          <div onClick={()=>{setShowNotifs(v=>!v);setShowUser(false)}} style={{width:36,height:36,borderRadius:10,background:'var(--c-input-bg)',border:`1px solid ${C.border}`,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',position:'relative'}}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style={{color:unreadCount>0?C.body:'var(--c-muted)'}}>
+              <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6V11c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/>
+            </svg>
+            {unreadCount>0&&(
+              <span style={{position:'absolute',top:-5,right:-5,minWidth:17,height:17,borderRadius:9,background:C.red,border:'2px solid var(--c-white)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:9,fontWeight:700,color:'#fff',padding:'0 3px',lineHeight:1}}>
+                {unreadCount}
+              </span>
+            )}
           </div>
           {showNotifs&&(
             <div style={{...ddBox,minWidth:340}}>
