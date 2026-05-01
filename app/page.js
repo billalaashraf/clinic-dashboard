@@ -1025,7 +1025,7 @@ function NotificationsPage({notifs, setNotifs}) {
 // ─── Profile Page ─────────────────────────────────────────────────────────────
 function ProfilePage({darkMode, setDarkMode}) {
   const [tab,setTab]         = useState('profile')
-  const [avatar,setAvatar]   = useState(null)
+  const [avatar,setAvatar]   = useState(()=>localStorage.getItem('clinicAvatar')||null)
   const [saved,setSaved]     = useState(false)
   const [deleteConf,setDeleteConf] = useState(false)
   const [showPw,setShowPw]   = useState({cur:false,nw:false,cf:false})
@@ -1035,7 +1035,7 @@ function ProfilePage({darkMode, setDarkMode}) {
 
   function handleAvatarChange(e) {
     const file = e.target.files?.[0]
-    if (file) { const r=new FileReader(); r.onload=ev=>setAvatar(ev.target.result); r.readAsDataURL(file) }
+    if (file) { const r=new FileReader(); r.onload=ev=>{localStorage.setItem('clinicAvatar',ev.target.result);setAvatar(ev.target.result)}; r.readAsDataURL(file) }
   }
   function saveProfile(){setSaved(true);setTimeout(()=>setSaved(false),2500)}
 
@@ -1073,7 +1073,7 @@ function ProfilePage({darkMode, setDarkMode}) {
             <label style={{...btn(),padding:'6px 14px',fontSize:12,cursor:'pointer'}}>
               Upload photo<input type="file" accept="image/*" style={{display:'none'}} onChange={handleAvatarChange}/>
             </label>
-            {avatar&&<button onClick={()=>setAvatar(null)} style={{...btn('outline'),padding:'6px 14px',fontSize:12}}>Remove</button>}
+            {avatar&&<button onClick={()=>{localStorage.removeItem('clinicAvatar');setAvatar(null)}} style={{...btn('outline'),padding:'6px 14px',fontSize:12}}>Remove</button>}
           </div>
         </div>
       </div>
