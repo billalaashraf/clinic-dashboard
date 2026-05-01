@@ -7,7 +7,10 @@ const REMIND_URL  = '/api/send-reminder'
 const ADD_URL     = '/api/add-client'
 
 // ─── design tokens ───────────────────────────────────────────────────────────
+// Theme-sensitive tokens reference CSS custom properties so dark mode works
+// by toggling data-theme="dark" on the root element.
 const C = {
+  // semantic accent colors — unchanged in both themes
   blue:'#2563eb', blueSoft:'#dbeafe', blueDark:'#1d4ed8',
   green:'#16a34a', greenSoft:'#dcfce7',
   red:'#dc2626', redSoft:'#fee2e2',
@@ -15,16 +18,38 @@ const C = {
   teal:'#0891b2', tealSoft:'#cffafe',
   orange:'#ea580c', orangeSoft:'#ffedd5',
   purple:'#7c3aed', purpleSoft:'#ede9fe',
-  bg:'#f0f2f7', white:'#ffffff',
-  border:'#e5e7eb', muted:'#6b7280', label:'#374151', body:'#111827',
+  // theme-aware surface/text/border tokens
+  bg:     'var(--c-bg)',
+  white:  'var(--c-white)',
+  body:   'var(--c-body)',
+  label:  'var(--c-label)',
+  muted:  'var(--c-muted)',
+  border: 'var(--c-border)',
+  inputBg:'var(--c-input-bg)',
+  subtle: 'var(--c-subtle)',      // var(--c-subtle) equivalent
+  unread: 'var(--c-unread-bg)',   // unread notification rows
 }
+const THEME_CSS = `
+  :root,[data-theme="light"]{
+    --c-bg:#f0f2f7;--c-white:#ffffff;--c-body:#111827;--c-label:#374151;
+    --c-muted:#6b7280;--c-border:#e5e7eb;--c-input-bg:#f9fafb;
+    --c-subtle:#f3f4f6;--c-unread-bg:#fafbff;
+  }
+  [data-theme="dark"]{
+    --c-bg:#0d0f17;--c-white:#161925;--c-body:#f1f5f9;--c-label:#cbd5e1;
+    --c-muted:#94a3b8;--c-border:#2a3044;--c-input-bg:#1e2235;
+    --c-subtle:#1e2235;--c-unread-bg:#1a1e30;
+  }
+  [data-theme="dark"] *{color-scheme:dark}
+  *{transition:background-color 200ms ease,border-color 200ms ease,color 200ms ease}
+`
 const card = { background:C.white, border:`1px solid ${C.border}`, borderRadius:14, boxShadow:'0 1px 4px rgba(0,0,0,0.045)' }
-const inp  = { width:'100%', padding:'10px 12px', background:'#f9fafb', border:`1px solid ${C.border}`, borderRadius:8, color:C.body, fontSize:13, outline:'none', boxSizing:'border-box', fontFamily:'inherit' }
+const inp  = { width:'100%', padding:'10px 12px', background:C.inputBg, border:`1px solid ${C.border}`, borderRadius:8, color:C.body, fontSize:13, outline:'none', boxSizing:'border-box', fontFamily:'inherit' }
 const lbl  = { fontSize:12, color:C.muted, marginBottom:4, display:'block', fontWeight:500 }
 const pill = (bg,color) => ({ background:bg, color, padding:'3px 10px', borderRadius:20, fontSize:11, fontWeight:600, whiteSpace:'nowrap', display:'inline-block' })
 const btn  = (variant='solid') => variant==='solid'
   ? { background:C.blue, border:'none', color:'#fff', padding:'9px 18px', borderRadius:10, cursor:'pointer', fontSize:13, fontWeight:600, fontFamily:'inherit', transition:'background 150ms' }
-  : { background:'#fff', border:`1px solid ${C.border}`, color:C.label, padding:'9px 16px', borderRadius:10, cursor:'pointer', fontSize:13, fontWeight:500, fontFamily:'inherit' }
+  : { background:C.white, border:`1px solid ${C.border}`, color:C.label, padding:'9px 16px', borderRadius:10, cursor:'pointer', fontSize:13, fontWeight:500, fontFamily:'inherit' }
 
 // ─── helpers (unchanged logic) ────────────────────────────────────────────────
 function parseDate(str) {
@@ -130,7 +155,7 @@ function AddModal({onClose, onAdd}) {
             <div style={{fontSize:16,fontWeight:700,color:C.body}}>Add Patient</div>
             <div style={{fontSize:12,color:C.muted,marginTop:2}}>Fill in details to add to follow-up system</div>
           </div>
-          <button onClick={onClose} style={{background:'#f3f4f6',border:'none',borderRadius:8,color:C.muted,cursor:'pointer',fontSize:18,width:32,height:32,display:'flex',alignItems:'center',justifyContent:'center'}}>×</button>
+          <button onClick={onClose} style={{background:'var(--c-subtle)',border:'none',borderRadius:8,color:C.muted,cursor:'pointer',fontSize:18,width:32,height:32,display:'flex',alignItems:'center',justifyContent:'center'}}>×</button>
         </div>
         <div style={{padding:24}}>
           <div style={sect}>Client Information</div>
@@ -241,12 +266,12 @@ function Topbar({page, search, setSearch, onNav, onSignOut, notifs, setNotifs}) 
 
   return (
     <div style={{height:58,background:C.white,borderBottom:`1px solid ${C.border}`,display:'flex',alignItems:'center',padding:'0 28px',gap:16,flexShrink:0,position:'sticky',top:0,zIndex:10}}>
-      <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search patients, treatments..." style={{...inp,width:280,borderRadius:10,background:'#f9fafb',fontSize:13,height:36,padding:'0 14px'}}/>
+      <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search patients, treatments..." style={{...inp,width:280,borderRadius:10,background:'var(--c-input-bg)',fontSize:13,height:36,padding:'0 14px'}}/>
       <div style={{marginLeft:'auto',display:'flex',alignItems:'center',gap:12}}>
 
         {/* Bell */}
         <div data-dropdown="notifs" style={{position:'relative'}}>
-          <div onClick={()=>{setShowNotifs(v=>!v);setShowUser(false)}} style={{width:36,height:36,borderRadius:10,background:'#f9fafb',border:`1px solid ${C.border}`,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',fontSize:16,position:'relative'}}>
+          <div onClick={()=>{setShowNotifs(v=>!v);setShowUser(false)}} style={{width:36,height:36,borderRadius:10,background:'var(--c-input-bg)',border:`1px solid ${C.border}`,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',fontSize:16,position:'relative'}}>
             🔔
             {unreadCount>0&&<span style={{position:'absolute',top:6,right:7,width:7,height:7,borderRadius:'50%',background:C.red,border:'1.5px solid #fff'}}/>}
           </div>
@@ -258,7 +283,7 @@ function Topbar({page, search, setSearch, onNav, onSignOut, notifs, setNotifs}) 
               </div>
               <div style={{maxHeight:320,overflowY:'auto'}}>
                 {notifs.map(n=>(
-                  <div key={n.id} onClick={()=>setNotifs(ns=>ns.map(x=>x.id===n.id?{...x,unread:false}:x))} style={{display:'flex',gap:12,padding:'12px 16px',borderBottom:`1px solid #f3f4f6`,cursor:'pointer',background:n.unread?'#fafbff':C.white,transition:'background 120ms'}}>
+                  <div key={n.id} onClick={()=>setNotifs(ns=>ns.map(x=>x.id===n.id?{...x,unread:false}:x))} style={{display:'flex',gap:12,padding:'12px 16px',borderBottom:`1px solid var(--c-subtle)`,cursor:'pointer',background:n.unread?'var(--c-unread-bg)':C.white,transition:'background 120ms'}}>
                     <div style={{flex:1,minWidth:0}}>
                       <div style={{fontSize:12,fontWeight:n.unread?700:500,color:C.body,marginBottom:2}}>{n.title}</div>
                       <div style={{fontSize:11,color:C.muted,lineHeight:1.4}}>{n.body}</div>
@@ -406,7 +431,7 @@ function DashboardPage({clients, loading, error, onShowAdd, sending, setSending,
             {[{label:'WhatsApp',pct:72,color:C.blue},{label:'Call',pct:64,color:C.green},{label:'SMS',pct:56,color:C.purple},{label:'Email',pct:38,color:C.muted}].map(ch=>(
               <div key={ch.label}>
                 <div style={{display:'flex',justifyContent:'space-between',fontSize:12,marginBottom:4}}><span style={{color:C.label,fontWeight:500}}>{ch.label}</span><span style={{color:ch.color,fontWeight:600}}>{ch.pct}%</span></div>
-                <div style={{height:6,background:'#f3f4f6',borderRadius:3}}><div style={{height:'100%',width:`${ch.pct}%`,background:ch.color,borderRadius:3}}/></div>
+                <div style={{height:6,background:'var(--c-subtle)',borderRadius:3}}><div style={{height:'100%',width:`${ch.pct}%`,background:ch.color,borderRadius:3}}/></div>
               </div>
             ))}
           </div>
@@ -418,7 +443,7 @@ function DashboardPage({clients, loading, error, onShowAdd, sending, setSending,
           <div style={{fontSize:14,fontWeight:700,color:C.body,marginBottom:14}}>Patient Funnel</div>
           <div style={{display:'flex',flexDirection:'column',gap:8}}>
             {[{label:'Lead',count:clients.length,pct:100,color:'#bfdbfe',tc:C.blueDark},{label:'Appointment',count:Math.round(clients.length*0.82),pct:82,color:C.blue,tc:'#fff'},{label:'Visit',count:Math.round(clients.length*0.65),pct:65,color:C.blueDark,tc:'#fff'},{label:'Revenue',count:`AED ${Math.round(totalRisk*0.4).toLocaleString()}`,pct:40,color:'#1e3a8a',tc:'#fff'}].map(f=>(
-              <div key={f.label} style={{position:'relative',height:30,background:'#f3f4f6',borderRadius:6,overflow:'hidden'}}>
+              <div key={f.label} style={{position:'relative',height:30,background:'var(--c-subtle)',borderRadius:6,overflow:'hidden'}}>
                 <div style={{position:'absolute',left:0,top:0,height:'100%',width:`${f.pct}%`,background:f.color,borderRadius:6,display:'flex',alignItems:'center',paddingLeft:12}}>
                   <span style={{fontSize:12,fontWeight:600,color:f.tc}}>{f.label}</span>
                 </div>
@@ -441,7 +466,7 @@ function DashboardPage({clients, loading, error, onShowAdd, sending, setSending,
             </div>
             <div style={{position:'relative',width:90,height:90,flexShrink:0}}>
               <svg viewBox="0 0 36 36" style={{width:90,height:90,transform:'rotate(-90deg)'}}>
-                <circle cx="18" cy="18" r="14" fill="none" stroke="#f3f4f6" strokeWidth="4"/>
+                <circle cx="18" cy="18" r="14" fill="none" stroke="var(--c-subtle)" strokeWidth="4"/>
                 <circle cx="18" cy="18" r="14" fill="none" stroke={C.blue}  strokeWidth="4" strokeDasharray="40 88" strokeDashoffset="0"/>
                 <circle cx="18" cy="18" r="14" fill="none" stroke={C.green} strokeWidth="4" strokeDasharray="40 88" strokeDashoffset="-40"/>
                 <circle cx="18" cy="18" r="14" fill="none" stroke={C.amber} strokeWidth="4" strokeDasharray="6 88"  strokeDashoffset="-80"/>
@@ -469,13 +494,13 @@ function DashboardPage({clients, loading, error, onShowAdd, sending, setSending,
          :error?<div style={{padding:40,textAlign:'center',color:C.red}}>{error}</div>
          :(
           <table style={{width:'100%',borderCollapse:'collapse',fontSize:13}}>
-            <thead><tr>{['Patient','Priority','Next Action','Revenue','Quick Actions'].map(h=><th key={h} style={{fontSize:11,color:C.muted,textAlign:'left',padding:'8px 12px',borderBottom:`1px solid ${C.border}`,fontWeight:600,background:'#f9fafb'}}>{h}</th>)}</tr></thead>
+            <thead><tr>{['Patient','Priority','Next Action','Revenue','Quick Actions'].map(h=><th key={h} style={{fontSize:11,color:C.muted,textAlign:'left',padding:'8px 12px',borderBottom:`1px solid ${C.border}`,fontWeight:600,background:'var(--c-input-bg)'}}>{h}</th>)}</tr></thead>
             <tbody>
               {filtered.map((c,i)=>{
                 const pri=getPriority(c);const rev=getRevenue(c);const diff=dayDiff(c.Next_Reminder_Date)
-                const stage=STAGE_STYLE[c.Reminder_Stage]||{bg:'#f3f4f6',color:C.label}
+                const stage=STAGE_STYLE[c.Reminder_Stage]||{bg:'var(--c-subtle)',color:C.label}
                 const cid=c.Client_ID||`row-${i}`;const isEdit=editRow===cid
-                const td={padding:'11px 12px',borderBottom:`1px solid #f3f4f6`,color:C.body,verticalAlign:'middle'}
+                const td={padding:'11px 12px',borderBottom:`1px solid var(--c-subtle)`,color:C.body,verticalAlign:'middle'}
                 return (
                   <tr key={cid} onClick={()=>{if(!isEdit){setSelected(c===selected?null:c);setEditRow(null)}}} style={{cursor:'pointer',background:selected===c?'#eff6ff':'#fff',transition:'background 120ms'}}>
                     <td style={td}><div style={{fontWeight:600}}>{c.Full_Name}</div><div style={{fontSize:10,color:C.muted,marginTop:1}}>· {c.Client_ID}</div></td>
@@ -553,7 +578,7 @@ function PatientsPage({clients,loading,error,showAdd,setShowAdd,sending,setSendi
     {label:'Active',   value:activeCount,        color:C.green,  bg:C.greenSoft},
     {label:'At Risk',  value:atRiskCount,         color:C.red,    bg:C.redSoft},
     {label:'New',      value:Math.round(clients.length*0.18), color:C.teal,   bg:C.tealSoft},
-    {label:'Lost',     value:clients.filter(c=>c.Status==='Lapsed').length, color:C.muted, bg:'#f3f4f6'},
+    {label:'Lost',     value:clients.filter(c=>c.Status==='Lapsed').length, color:C.muted, bg:'var(--c-subtle)'},
     {label:'Returning',value:Math.round(clients.length*0.4),  color:C.blue,   bg:C.blueSoft},
   ]
 
@@ -590,13 +615,13 @@ function PatientsPage({clients,loading,error,showAdd,setShowAdd,sending,setSendi
          :error?<div style={{padding:48,textAlign:'center',color:C.red}}>{error}</div>
          :(
           <table style={{width:'100%',borderCollapse:'collapse',fontSize:13}}>
-            <thead><tr style={{borderBottom:`1px solid ${C.border}`}}>{['Patient Name','Treatment','Status','Last Visit','Follow-up','Revenue','Actions'].map(h=><th key={h} style={{fontSize:11,color:C.muted,textAlign:'left',padding:'12px 16px',fontWeight:600,background:'#f9fafb'}}>{h}</th>)}</tr></thead>
+            <thead><tr style={{borderBottom:`1px solid ${C.border}`}}>{['Patient Name','Treatment','Status','Last Visit','Follow-up','Revenue','Actions'].map(h=><th key={h} style={{fontSize:11,color:C.muted,textAlign:'left',padding:'12px 16px',fontWeight:600,background:'var(--c-input-bg)'}}>{h}</th>)}</tr></thead>
             <tbody>
               {filtered.map((c,i)=>{
                 const pri=getPriority(c);const rev=getRevenue(c);const diff=dayDiff(c.Next_Reminder_Date)
-                const stage=STAGE_STYLE[c.Reminder_Stage]||{bg:'#f3f4f6',color:C.label}
+                const stage=STAGE_STYLE[c.Reminder_Stage]||{bg:'var(--c-subtle)',color:C.label}
                 const cid=c.Client_ID||`row-${i}`;const isEdit=editRow===cid
-                const td={padding:'13px 16px',borderBottom:`1px solid #f3f4f6`,color:C.body,verticalAlign:'middle'}
+                const td={padding:'13px 16px',borderBottom:`1px solid var(--c-subtle)`,color:C.body,verticalAlign:'middle'}
                 return (
                   <tr key={cid} onClick={()=>{if(!isEdit){setSelected(c===selected?null:c);setEditRow(null)}}} style={{cursor:'pointer',background:selected===c?'#eff6ff':'#fff',transition:'background 120ms'}}>
                     <td style={td}><div style={{fontWeight:600}}>{c.Full_Name}</div><div style={{fontSize:11,color:C.muted}}>{c.Client_ID}</div></td>
@@ -683,11 +708,11 @@ function AppointmentsPage() {
 
       <div style={{...card,padding:0,overflow:'hidden'}}>
         <table style={{width:'100%',borderCollapse:'collapse',fontSize:13}}>
-          <thead><tr style={{borderBottom:`1px solid ${C.border}`}}>{['Time','Patient','Doctor','Department','Type','Status','Actions'].map(h=><th key={h} style={{fontSize:11,color:C.muted,textAlign:'left',padding:'12px 16px',fontWeight:600,background:'#f9fafb'}}>{h}</th>)}</tr></thead>
+          <thead><tr style={{borderBottom:`1px solid ${C.border}`}}>{['Time','Patient','Doctor','Department','Type','Status','Actions'].map(h=><th key={h} style={{fontSize:11,color:C.muted,textAlign:'left',padding:'12px 16px',fontWeight:600,background:'var(--c-input-bg)'}}>{h}</th>)}</tr></thead>
           <tbody>
             {APPTS.map((a,i)=>{
-              const s=SS[a.status]||{bg:'#f3f4f6',color:C.muted}
-              const td={padding:'13px 16px',borderBottom:`1px solid #f3f4f6`,color:C.body,verticalAlign:'middle'}
+              const s=SS[a.status]||{bg:'var(--c-subtle)',color:C.muted}
+              const td={padding:'13px 16px',borderBottom:`1px solid var(--c-subtle)`,color:C.body,verticalAlign:'middle'}
               return (
                 <tr key={i} style={{cursor:'pointer',background:C.white,transition:'background 120ms'}}>
                   <td style={{...td,fontWeight:600,color:C.body,whiteSpace:'nowrap'}}>{a.time}</td>
@@ -772,7 +797,7 @@ function AnalyticsPage({clients}) {
             {[{label:'WhatsApp',pct:72,color:C.blue},{label:'Phone',pct:64,color:C.green},{label:'SMS',pct:56,color:C.purple},{label:'Email',pct:38,color:C.muted}].map(ch=>(
               <div key={ch.label}>
                 <div style={{display:'flex',justifyContent:'space-between',fontSize:12,marginBottom:4}}><span style={{color:C.label,fontWeight:500}}>{ch.label}</span><span style={{color:ch.color,fontWeight:600}}>{ch.pct}%</span></div>
-                <div style={{height:8,background:'#f3f4f6',borderRadius:4}}><div style={{height:'100%',width:`${ch.pct}%`,background:ch.color,borderRadius:4}}/></div>
+                <div style={{height:8,background:'var(--c-subtle)',borderRadius:4}}><div style={{height:'100%',width:`${ch.pct}%`,background:ch.color,borderRadius:4}}/></div>
               </div>
             ))}
           </div>
@@ -783,7 +808,7 @@ function AnalyticsPage({clients}) {
             {[{label:'Cardiology',value:'AED 210k',pct:80,color:C.blue},{label:'Orthopedics',value:'AED 185k',pct:70,color:C.teal},{label:'Dermatology',value:'AED 156k',pct:59,color:C.purple},{label:'General',value:'AED 133k',pct:51,color:C.green}].map(d=>(
               <div key={d.label}>
                 <div style={{display:'flex',justifyContent:'space-between',fontSize:12,marginBottom:4}}><span style={{color:C.label,fontWeight:500}}>{d.label}</span><span style={{color:C.muted}}>{d.value}</span></div>
-                <div style={{height:8,background:'#f3f4f6',borderRadius:4}}><div style={{height:'100%',width:`${d.pct}%`,background:d.color,borderRadius:4}}/></div>
+                <div style={{height:8,background:'var(--c-subtle)',borderRadius:4}}><div style={{height:'100%',width:`${d.pct}%`,background:d.color,borderRadius:4}}/></div>
               </div>
             ))}
           </div>
@@ -829,7 +854,7 @@ function SettingsPage() {
         <div style={{fontSize:26,fontWeight:800,color:C.body,letterSpacing:'-0.7px'}}>Settings</div>
         {tab==='Team'&&<button style={btn()}>+ Invite Member</button>}
       </div>
-      <div style={{display:'flex',gap:4,marginBottom:22,background:'#f3f4f6',borderRadius:11,padding:4,width:'fit-content'}}>
+      <div style={{display:'flex',gap:4,marginBottom:22,background:'var(--c-subtle)',borderRadius:11,padding:4,width:'fit-content'}}>
         {tabs.map(t=>(
           <button key={t} onClick={()=>setTab(t)} style={{padding:'7px 16px',borderRadius:8,border:'none',cursor:'pointer',fontSize:13,fontWeight:tab===t?600:400,background:tab===t?C.white:' transparent',color:tab===t?C.body:C.muted,boxShadow:tab===t?'0 1px 4px rgba(0,0,0,0.08)':'none',transition:'all 150ms',fontFamily:'inherit'}}>{t}</button>
         ))}
@@ -852,7 +877,7 @@ function SettingsPage() {
           <div style={{...card,padding:'22px 24px'}}>
             <div style={{fontSize:15,fontWeight:700,color:C.body,marginBottom:18}}>Working Hours</div>
             {[{day:'Mon – Thu',open:'09:00',close:'18:00'},{day:'Friday',open:'09:00',close:'17:00'},{day:'Saturday',open:'10:00',close:'15:00'},{day:'Sunday',open:'',close:'',closed:true}].map(h=>(
-              <div key={h.day} style={{display:'flex',alignItems:'center',gap:16,padding:'12px 0',borderBottom:`1px solid #f3f4f6`}}>
+              <div key={h.day} style={{display:'flex',alignItems:'center',gap:16,padding:'12px 0',borderBottom:`1px solid var(--c-subtle)`}}>
                 <span style={{fontSize:13,color:C.label,fontWeight:500,width:90}}>{h.day}</span>
                 {h.closed?<span style={pill(C.redSoft,C.red)}>Closed</span>:<><input style={{...inp,width:100}} value={h.open} readOnly/><span style={{color:C.muted,fontSize:13}}>–</span><input style={{...inp,width:100}} value={h.close} readOnly/></>}
               </div>
@@ -865,7 +890,7 @@ function SettingsPage() {
         <div style={{...card,padding:'22px 24px'}}>
           <div style={{fontSize:15,fontWeight:700,color:C.body,marginBottom:18}}>Notification Preferences</div>
           {[['apptReminders','Appointment Reminders','Send automated reminders before appointments'],['dailySummary','Daily Summary Emails','Receive a daily digest of clinic activity'],['weeklyReport','Weekly Report','Weekly performance report every Monday'],['smsAlerts','SMS Alerts','Critical alerts via SMS'],['emailDigest','Email Digest','Periodic email summary of patient activity']].map(([k,label,desc])=>(
-            <div key={k} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 0',borderBottom:`1px solid #f3f4f6`}}>
+            <div key={k} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 0',borderBottom:`1px solid var(--c-subtle)`}}>
               <div><div style={{fontSize:13,fontWeight:500,color:C.body}}>{label}</div><div style={{fontSize:12,color:C.muted,marginTop:2}}>{desc}</div></div>
               <Toggle on={notifs[k]} onToggle={()=>setNotifs(n=>({...n,[k]:!n[k]}))}/>
             </div>
@@ -877,9 +902,9 @@ function SettingsPage() {
         <div style={{...card,padding:'22px 24px'}}>
           <div style={{fontSize:15,fontWeight:700,color:C.body,marginBottom:18}}>Connected Integrations</div>
           {[['ehr','EHR Integration','Electronic health records system','Connected','🏥'],['billing','Billing Platform','Payment and invoicing system','Not Connected','💳'],['whatsapp','WhatsApp Business','Patient messaging via WhatsApp','Connected','💬'],['calendar','Google Calendar','Sync appointments with Google Calendar','Not Connected','📆']].map(([k,name,desc,status,icon])=>(
-            <div key={k} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'16px 0',borderBottom:`1px solid #f3f4f6`}}>
+            <div key={k} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'16px 0',borderBottom:`1px solid var(--c-subtle)`}}>
               <div style={{display:'flex',alignItems:'center',gap:14}}>
-                <div style={{width:40,height:40,borderRadius:10,background:'#f3f4f6',display:'flex',alignItems:'center',justifyContent:'center',fontSize:20}}>{icon}</div>
+                <div style={{width:40,height:40,borderRadius:10,background:'var(--c-subtle)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:20}}>{icon}</div>
                 <div>
                   <div style={{fontSize:13,fontWeight:600,color:C.body}}>{name}</div>
                   <div style={{fontSize:12,color:C.muted,marginTop:1}}>{desc}</div>
@@ -918,10 +943,10 @@ function SettingsPage() {
       {tab==='Team'&&(
         <div style={{...card,padding:0,overflow:'hidden'}}>
           <table style={{width:'100%',borderCollapse:'collapse',fontSize:13}}>
-            <thead><tr style={{borderBottom:`1px solid ${C.border}`}}>{['Member','Role','Email','Status','Actions'].map(h=><th key={h} style={{fontSize:11,color:C.muted,textAlign:'left',padding:'12px 18px',fontWeight:600,background:'#f9fafb'}}>{h}</th>)}</tr></thead>
+            <thead><tr style={{borderBottom:`1px solid ${C.border}`}}>{['Member','Role','Email','Status','Actions'].map(h=><th key={h} style={{fontSize:11,color:C.muted,textAlign:'left',padding:'12px 18px',fontWeight:600,background:'var(--c-input-bg)'}}>{h}</th>)}</tr></thead>
             <tbody>
               {teamMembers.map((m,i)=>{
-                const td={padding:'14px 18px',borderBottom:`1px solid #f3f4f6`,color:C.body,verticalAlign:'middle'}
+                const td={padding:'14px 18px',borderBottom:`1px solid var(--c-subtle)`,color:C.body,verticalAlign:'middle'}
                 const initials=m.name.split(' ').map(p=>p[0]).join('').slice(0,2)
                 return (
                   <tr key={i} style={{background:C.white}}>
@@ -978,7 +1003,7 @@ function NotificationsPage({notifs, setNotifs}) {
       <div style={{...card,overflow:'hidden'}}>
         {filtered.length===0&&<div style={{padding:48,textAlign:'center',color:C.muted,fontSize:13}}>No notifications in this category.</div>}
         {filtered.map((n,i)=>(
-          <div key={n.id} onClick={()=>setNotifs(ns=>ns.map(x=>x.id===n.id?{...x,unread:false}:x))} style={{display:'flex',gap:14,padding:'16px 20px',background:n.unread?'#fafbff':C.white,borderBottom:i<filtered.length-1?`1px solid ${C.border}`:'none',cursor:'pointer',alignItems:'flex-start',transition:'background 120ms'}}>
+          <div key={n.id} onClick={()=>setNotifs(ns=>ns.map(x=>x.id===n.id?{...x,unread:false}:x))} style={{display:'flex',gap:14,padding:'16px 20px',background:n.unread?'var(--c-unread-bg)':C.white,borderBottom:i<filtered.length-1?`1px solid ${C.border}`:'none',cursor:'pointer',alignItems:'flex-start',transition:'background 120ms'}}>
             <div style={{flex:1,minWidth:0}}>
               <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:12}}>
                 <div style={{fontSize:13,fontWeight:n.unread?700:600,color:C.body,lineHeight:1.4}}>{n.title}</div>
@@ -998,7 +1023,7 @@ function NotificationsPage({notifs, setNotifs}) {
 }
 
 // ─── Profile Page ─────────────────────────────────────────────────────────────
-function ProfilePage() {
+function ProfilePage({darkMode, setDarkMode}) {
   const [tab,setTab]         = useState('profile')
   const [avatar,setAvatar]   = useState(null)
   const [saved,setSaved]     = useState(false)
@@ -1006,7 +1031,6 @@ function ProfilePage() {
   const [showPw,setShowPw]   = useState({cur:false,nw:false,cf:false})
   const [profile,setProfile] = useState({firstName:'Admin',lastName:'Dr',displayName:'Dr. Admin',email:'admin@clinic.com',phone:'+971 50 000 0000',department:'General',timezone:'UTC+04:00',licenseNo:'DHA-12345',bio:''})
   const [notifPrefs,setNotifPrefs] = useState({email:true,sms:true,push:false,weeklyDigest:true,reminders:true})
-  const [displayPrefs,setDisplayPrefs] = useState({darkMode:false,compactView:false})
   const [pw,setPw] = useState({cur:'',nw:'',cf:''})
 
   function handleAvatarChange(e) {
@@ -1055,7 +1079,7 @@ function ProfilePage() {
       </div>
 
       {/* Tabs */}
-      <div style={{display:'flex',gap:4,marginBottom:20,background:'#f3f4f6',borderRadius:11,padding:4,width:'fit-content'}}>
+      <div style={{display:'flex',gap:4,marginBottom:20,background:'var(--c-subtle)',borderRadius:11,padding:4,width:'fit-content'}}>
         {TABS.map(t=>(
           <button key={t.id} onClick={()=>setTab(t.id)} style={{padding:'7px 16px',borderRadius:8,border:'none',cursor:'pointer',fontSize:13,fontWeight:tab===t.id?600:400,background:tab===t.id?C.white:'transparent',color:tab===t.id?C.body:C.muted,boxShadow:tab===t.id?'0 1px 4px rgba(0,0,0,0.08)':'none',transition:'all 150ms',fontFamily:'inherit'}}>{t.label}</button>
         ))}
@@ -1095,7 +1119,7 @@ function ProfilePage() {
             {pw.nw.length>0&&(
               <div>
                 <div style={{display:'flex',justifyContent:'space-between',fontSize:11,color:C.muted,marginBottom:4}}><span>Password strength</span><span style={{color:pwColors[pwStrength],fontWeight:600}}>{pwLabels[pwStrength]}</span></div>
-                <div style={{height:4,background:'#f3f4f6',borderRadius:2,overflow:'hidden'}}>
+                <div style={{height:4,background:'var(--c-subtle)',borderRadius:2,overflow:'hidden'}}>
                   <div style={{height:'100%',width:`${pwStrength*25}%`,background:pwColors[pwStrength],borderRadius:2,transition:'all 300ms'}}/>
                 </div>
               </div>
@@ -1106,7 +1130,7 @@ function ProfilePage() {
             <button onClick={()=>setPw({cur:'',nw:'',cf:''})} style={btn()}>Update Password</button>
             <button onClick={()=>setPw({cur:'',nw:'',cf:''})} style={btn('outline')}>Cancel</button>
           </div>
-          <div style={{...card,padding:'20px 24px',marginTop:20,background:'#f9fafb'}}>
+          <div style={{...card,padding:'20px 24px',marginTop:20,background:'var(--c-input-bg)'}}>
             <div style={{fontSize:14,fontWeight:700,color:C.body,marginBottom:4}}>Two-Factor Authentication</div>
             <div style={{fontSize:13,color:C.muted,marginBottom:14}}>Add an extra layer of security to your account.</div>
             <button style={btn()}>Enable 2FA</button>
@@ -1120,16 +1144,19 @@ function ProfilePage() {
           <div style={{fontSize:15,fontWeight:700,color:C.body,marginBottom:4}}>Notifications</div>
           <div style={{fontSize:12,color:C.muted,marginBottom:16}}>Choose how you receive notifications.</div>
           {[['email','Email notifications'],['sms','SMS alerts'],['push','Push notifications'],['weeklyDigest','Weekly digest'],['reminders','Appointment reminders']].map(([k,label])=>(
-            <div key={k} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 0',borderBottom:`1px solid #f3f4f6`}}>
+            <div key={k} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 0',borderBottom:`1px solid var(--c-subtle)`}}>
               <span style={{fontSize:13,color:C.label,fontWeight:500}}>{label}</span>
               <Toggle on={notifPrefs[k]} onToggle={()=>setNotifPrefs(p=>({...p,[k]:!p[k]}))}/>
             </div>
           ))}
           <div style={{fontSize:15,fontWeight:700,color:C.body,marginTop:22,marginBottom:4}}>Display</div>
           {[['darkMode','Dark mode'],['compactView','Compact view']].map(([k,label])=>(
-            <div key={k} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 0',borderBottom:`1px solid #f3f4f6`}}>
+            <div key={k} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 0',borderBottom:`1px solid var(--c-subtle)`}}>
               <span style={{fontSize:13,color:C.label,fontWeight:500}}>{label}</span>
-              <Toggle on={displayPrefs[k]} onToggle={()=>setDisplayPrefs(p=>({...p,[k]:!p[k]}))}/>
+              <Toggle
+                on={k==='darkMode' ? darkMode : false}
+                onToggle={k==='darkMode' ? ()=>setDarkMode(d=>!d) : ()=>{}}
+              />
             </div>
           ))}
         </div>
@@ -1218,6 +1245,7 @@ export default function App() {
   const [selected,setSelected]       = useState(null)
   const [navSearch,setNavSearch]     = useState('')
   const [notifs,setNotifs]           = useState(SAMPLE_NOTIFS)
+  const [darkMode,setDarkMode]       = useState(false)
 
   useEffect(()=>{
     fetch(WEBHOOK_URL).then(r=>r.json()).then(d=>{setClients(Array.isArray(d)?d:[]);setLoading(false)}).catch(e=>{setError(e.message);setLoading(false)})
@@ -1231,7 +1259,8 @@ export default function App() {
   const sharedProps = { clients,loading,error,sending,setSending,doing,setDoing,editRow,setEditRow,editV,setEditV,setClients,showToast,selected,setSelected }
 
   return (
-    <div style={{display:'flex',height:'100vh',overflow:'hidden',background:C.bg,fontFamily:"'Inter',system-ui,sans-serif"}}>
+    <div data-theme={darkMode?'dark':'light'} style={{display:'flex',height:'100vh',overflow:'hidden',background:C.bg,fontFamily:"'Inter',system-ui,sans-serif"}}>
+      <style dangerouslySetInnerHTML={{__html:THEME_CSS}}/>
       {toast&&<Toast msg={toast.msg} type={toast.type} onDone={()=>setToast(null)}/>}
       {showLogout&&<LogoutModal onConfirm={()=>{setLoggedIn(false);setShowLogout(false)}} onCancel={()=>setShowLogout(false)}/>}
       <Sidebar active={activeNav} onNav={handleNav} onSignOut={()=>setShowLogout(true)}/>
@@ -1244,7 +1273,7 @@ export default function App() {
           {activeNav==='Analytics'&&<AnalyticsPage clients={clients}/>}
           {activeNav==='Settings'&&<SettingsPage/>}
           {activeNav==='Notifications'&&<NotificationsPage notifs={notifs} setNotifs={setNotifs}/>}
-          {activeNav==='Profile'&&<ProfilePage/>}
+          {activeNav==='Profile'&&<ProfilePage darkMode={darkMode} setDarkMode={setDarkMode}/>}
         </div>
       </div>
       {activeNav==='Dashboard'&&showAdd&&<AddModal onClose={()=>setShowAdd(false)} onAdd={c=>{const nc={Client_ID:`CLT-${crypto.randomUUID().slice(0,8)}`,...c,Status:'Active',Last_Reminder_Sent:'',Next_Reminder_Date:'',row_number:Date.now()+Math.random()};setClients(cs=>[...cs,nc]);showToast(`${c.Full_Name} added`);setShowAdd(false)}}/>}
