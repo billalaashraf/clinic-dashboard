@@ -296,11 +296,11 @@ function Topbar({page, search, setSearch, onNav, onSignOut}) {
                 <div style={{fontSize:11,color:C.muted,marginTop:1}}>admin@clinic.com</div>
               </div>
               {[
-                {icon:'👤', label:'Profile', action:()=>{onNav('Settings');setShowUser(false)}},
-                {icon:'⚙',  label:'Settings', action:()=>{onNav('Settings');setShowUser(false)}},
+                {label:'Profile', action:()=>{onNav('Settings');setShowUser(false)}},
+                {label:'Settings', action:()=>{onNav('Settings');setShowUser(false)}},
               ].map(item=>(
-                <div key={item.label} onClick={item.action} style={{display:'flex',alignItems:'center',gap:10,padding:'10px 16px',cursor:'pointer',fontSize:13,color:C.label,fontWeight:500,transition:'background 120ms'}}>
-                  <span style={{fontSize:15}}>{item.icon}</span>{item.label}
+                <div key={item.label} onClick={item.action} style={{display:'flex',alignItems:'center',padding:'10px 16px',cursor:'pointer',fontSize:13,color:C.label,fontWeight:500,transition:'background 120ms'}}>
+                  {item.label}
                 </div>
               ))}
               <div style={{borderTop:`1px solid ${C.border}`,padding:'8px 4px 4px'}}>
