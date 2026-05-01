@@ -215,23 +215,103 @@ function Sidebar({active, onNav, onSignOut}) {
 }
 
 // ─── Topbar ───────────────────────────────────────────────────────────────────
-function Topbar({page, search, setSearch, notifCount=2}) {
+const SAMPLE_NOTIFS = [
+  {id:1, icon:'⚠️', title:'Critical: Aarav Mehta overdue',     body:'Follow-up is 5 days overdue. AED 12,400 at risk.',     time:'2m ago',  unread:true},
+  {id:2, icon:'💬', title:'Reminder sent to Sophia Reed',       body:'WhatsApp reminder delivered successfully.',           time:'14m ago', unread:true},
+  {id:3, icon:'📅', title:'New appointment booked',             body:'Omar Al Farsi — Dr. Ali Raza, today 11:00 AM.',       time:'1h ago',  unread:true},
+  {id:4, icon:'✅', title:'Maya Collins marked as done',        body:'Follow-up completed. Next session in 14 days.',       time:'3h ago',  unread:false},
+  {id:5, icon:'💰', title:'Revenue milestone reached',          body:'AED 100,000 recovered this month.',                  time:'5h ago',  unread:false},
+  {id:6, icon:'🔧', title:'EHR integration reconnected',        body:'Sync resumed after brief interruption.',              time:'Yesterday',unread:false},
+]
+
+function Topbar({page, search, setSearch, onNav, onSignOut}) {
+  const [showNotifs, setShowNotifs] = useState(false)
+  const [showUser,   setShowUser]   = useState(false)
+  const [notifs, setNotifs] = useState(SAMPLE_NOTIFS)
+  const unreadCount = notifs.filter(n=>n.unread).length
+
+  useEffect(()=>{
+    function handleClick(e) {
+      if (!e.target.closest('[data-dropdown]')) { setShowNotifs(false); setShowUser(false) }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return ()=>document.removeEventListener('mousedown', handleClick)
+  }, [])
+
+  const ddBox = { position:'absolute', top:'calc(100% + 8px)', right:0, background:C.white, border:`1px solid ${C.border}`, borderRadius:12, boxShadow:'0 8px 24px rgba(0,0,0,0.10)', zIndex:200, minWidth:300 }
+
   return (
     <div style={{height:58,background:C.white,borderBottom:`1px solid ${C.border}`,display:'flex',alignItems:'center',padding:'0 28px',gap:16,flexShrink:0,position:'sticky',top:0,zIndex:10}}>
       <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search patients, treatments..." style={{...inp,width:280,borderRadius:10,background:'#f9fafb',fontSize:13,height:36,padding:'0 14px'}}/>
       <div style={{marginLeft:'auto',display:'flex',alignItems:'center',gap:12}}>
-        <div style={{position:'relative',width:36,height:36,borderRadius:10,background:'#f9fafb',border:`1px solid ${C.border}`,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',fontSize:16}}>
-          🔔
-          {notifCount>0&&<span style={{position:'absolute',top:6,right:7,width:7,height:7,borderRadius:'50%',background:C.red,border:'1.5px solid #fff'}}/>}
-        </div>
-        <div style={{width:1,height:24,background:C.border}}/>
-        <div style={{display:'flex',alignItems:'center',gap:8}}>
-          <div style={{width:32,height:32,borderRadius:10,background:C.blueSoft,display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,fontWeight:700,color:C.blueDark}}>Dr</div>
-          <div>
-            <div style={{fontSize:12,fontWeight:600,color:C.body}}>Dr. Admin</div>
-            <div style={{fontSize:10,color:C.muted}}>Clinic Manager</div>
+
+        {/* Bell */}
+        <div data-dropdown="notifs" style={{position:'relative'}}>
+          <div onClick={()=>{setShowNotifs(v=>!v);setShowUser(false)}} style={{width:36,height:36,borderRadius:10,background:'#f9fafb',border:`1px solid ${C.border}`,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',fontSize:16,position:'relative'}}>
+            🔔
+            {unreadCount>0&&<span style={{position:'absolute',top:6,right:7,width:7,height:7,borderRadius:'50%',background:C.red,border:'1.5px solid #fff'}}/>}
           </div>
+          {showNotifs&&(
+            <div style={{...ddBox,minWidth:340}}>
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 16px',borderBottom:`1px solid ${C.border}`}}>
+                <div style={{fontSize:13,fontWeight:700,color:C.body}}>Notifications {unreadCount>0&&<span style={{...pill(C.redSoft,C.red),fontSize:10,padding:'2px 7px',marginLeft:6}}>{unreadCount} new</span>}</div>
+                {unreadCount>0&&<button onClick={()=>setNotifs(n=>n.map(x=>({...x,unread:false})))} style={{fontSize:11,color:C.blue,background:'none',border:'none',cursor:'pointer',fontWeight:600,fontFamily:'inherit'}}>Mark all read</button>}
+              </div>
+              <div style={{maxHeight:320,overflowY:'auto'}}>
+                {notifs.map(n=>(
+                  <div key={n.id} onClick={()=>setNotifs(ns=>ns.map(x=>x.id===n.id?{...x,unread:false}:x))} style={{display:'flex',gap:12,padding:'12px 16px',borderBottom:`1px solid #f3f4f6`,cursor:'pointer',background:n.unread?'#fafbff':C.white,transition:'background 120ms'}}>
+                    <span style={{fontSize:18,flexShrink:0,marginTop:1}}>{n.icon}</span>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontSize:12,fontWeight:n.unread?700:500,color:C.body,marginBottom:2}}>{n.title}</div>
+                      <div style={{fontSize:11,color:C.muted,lineHeight:1.4}}>{n.body}</div>
+                      <div style={{fontSize:10,color:'#9ca3af',marginTop:4}}>{n.time}</div>
+                    </div>
+                    {n.unread&&<span style={{width:7,height:7,borderRadius:'50%',background:C.blue,flexShrink:0,marginTop:4}}/>}
+                  </div>
+                ))}
+              </div>
+              <div style={{padding:'10px 16px',borderTop:`1px solid ${C.border}`,textAlign:'center'}}>
+                <button onClick={()=>{setShowNotifs(false)}} style={{fontSize:12,color:C.blue,background:'none',border:'none',cursor:'pointer',fontWeight:600,fontFamily:'inherit'}}>View all notifications →</button>
+              </div>
+            </div>
+          )}
         </div>
+
+        <div style={{width:1,height:24,background:C.border}}/>
+
+        {/* User avatar */}
+        <div data-dropdown="user" style={{position:'relative'}}>
+          <div onClick={()=>{setShowUser(v=>!v);setShowNotifs(false)}} style={{display:'flex',alignItems:'center',gap:8,cursor:'pointer',padding:'4px 6px',borderRadius:9,transition:'background 120ms'}}>
+            <div style={{width:32,height:32,borderRadius:10,background:C.blueSoft,display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,fontWeight:700,color:C.blueDark}}>Dr</div>
+            <div>
+              <div style={{fontSize:12,fontWeight:600,color:C.body}}>Dr. Admin</div>
+              <div style={{fontSize:10,color:C.muted}}>Clinic Manager</div>
+            </div>
+            <span style={{fontSize:10,color:C.muted,marginLeft:2}}>▾</span>
+          </div>
+          {showUser&&(
+            <div style={{...ddBox,minWidth:200}}>
+              <div style={{padding:'12px 16px',borderBottom:`1px solid ${C.border}`}}>
+                <div style={{fontSize:13,fontWeight:700,color:C.body}}>Dr. Admin</div>
+                <div style={{fontSize:11,color:C.muted,marginTop:1}}>admin@clinic.com</div>
+              </div>
+              {[
+                {icon:'👤', label:'Profile', action:()=>{onNav('Settings');setShowUser(false)}},
+                {icon:'⚙',  label:'Settings', action:()=>{onNav('Settings');setShowUser(false)}},
+              ].map(item=>(
+                <div key={item.label} onClick={item.action} style={{display:'flex',alignItems:'center',gap:10,padding:'10px 16px',cursor:'pointer',fontSize:13,color:C.label,fontWeight:500,transition:'background 120ms'}}>
+                  <span style={{fontSize:15}}>{item.icon}</span>{item.label}
+                </div>
+              ))}
+              <div style={{borderTop:`1px solid ${C.border}`,padding:'8px 4px 4px'}}>
+                <div onClick={()=>{setShowUser(false);onSignOut()}} style={{display:'flex',alignItems:'center',gap:10,padding:'10px 16px',cursor:'pointer',fontSize:13,color:C.red,fontWeight:500,borderRadius:8,transition:'background 120ms'}}>
+                  <span>↪</span> Sign out
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
       </div>
     </div>
   )
@@ -924,7 +1004,7 @@ export default function App() {
       {showLogout&&<LogoutModal onConfirm={()=>{setLoggedIn(false);setShowLogout(false)}} onCancel={()=>setShowLogout(false)}/>}
       <Sidebar active={activeNav} onNav={handleNav} onSignOut={()=>setShowLogout(true)}/>
       <div style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}}>
-        <Topbar page={activeNav} search={navSearch} setSearch={setNavSearch}/>
+        <Topbar page={activeNav} search={navSearch} setSearch={setNavSearch} onNav={handleNav} onSignOut={()=>setShowLogout(true)}/>
         <div style={{flex:1,overflowY:'auto'}}>
           {activeNav==='Dashboard'&&<DashboardPage {...sharedProps} onShowAdd={()=>setShowAdd(true)} search={navSearch} setSearch={setNavSearch}/>}
           {activeNav==='Patients'&&<PatientsPage {...sharedProps} showAdd={showAdd} setShowAdd={setShowAdd}/>}
