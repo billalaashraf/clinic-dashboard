@@ -249,17 +249,10 @@ const SAMPLE_NOTIFS = [
   {id:6, type:'system',       title:'Daily lapsed check completed',           body:'42 clients checked. 3 newly lapsed, 0 errors.',               time:'Yesterday',unread:false},
 ]
 
-function Topbar({page, search, setSearch, onNav, onSignOut, notifs, setNotifs}) {
+function Topbar({page, search, setSearch, onNav, onSignOut, notifs, setNotifs, avatar}) {
   const [showNotifs, setShowNotifs] = useState(false)
   const [showUser,   setShowUser]   = useState(false)
-  const [topbarAvatar, setTopbarAvatar] = useState(()=>localStorage.getItem('clinicAvatar')||null)
   const unreadCount = notifs.filter(n=>n.unread).length
-
-  useEffect(()=>{
-    function onStorage(e){ if(e.key==='clinicAvatar') setTopbarAvatar(e.newValue||null) }
-    window.addEventListener('storage', onStorage)
-    return ()=>window.removeEventListener('storage', onStorage)
-  },[])
 
   useEffect(()=>{
     function handleClick(e) {
@@ -319,7 +312,7 @@ function Topbar({page, search, setSearch, onNav, onSignOut, notifs, setNotifs}) 
         <div data-dropdown="user" style={{position:'relative'}}>
           <div onClick={()=>{setShowUser(v=>!v);setShowNotifs(false)}} style={{display:'flex',alignItems:'center',gap:8,cursor:'pointer',padding:'4px 6px',borderRadius:9,transition:'background 120ms'}}>
             <div style={{width:32,height:32,borderRadius:10,background:C.blueSoft,display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,fontWeight:700,color:C.blueDark,overflow:'hidden'}}>
-              {topbarAvatar?<img src={topbarAvatar} style={{width:'100%',height:'100%',objectFit:'cover'}} alt="avatar"/>:'Dr'}
+              {avatar?<img src={avatar} style={{width:'100%',height:'100%',objectFit:'cover'}} alt="avatar"/>:'Dr'}
             </div>
             <div>
               <div style={{fontSize:12,fontWeight:600,color:C.body}}>Dr. Admin</div>
@@ -1038,9 +1031,8 @@ function NotificationsPage({notifs, setNotifs}) {
 }
 
 // ─── Profile Page ─────────────────────────────────────────────────────────────
-function ProfilePage({darkMode, setDarkMode}) {
+function ProfilePage({darkMode, setDarkMode, avatar, setAvatar}) {
   const [tab,setTab]         = useState('profile')
-  const [avatar,setAvatar]   = useState(()=>localStorage.getItem('clinicAvatar')||null)
   const [saved,setSaved]     = useState(false)
   const [deleteConf,setDeleteConf] = useState(false)
   const [showPw,setShowPw]   = useState({cur:false,nw:false,cf:false})
@@ -1261,6 +1253,7 @@ export default function App() {
   const [navSearch,setNavSearch]     = useState('')
   const [notifs,setNotifs]           = useState(SAMPLE_NOTIFS)
   const [darkMode,setDarkMode]       = useState(false)
+  const [avatar,setAvatar]           = useState(()=>localStorage.getItem('clinicAvatar')||null)
 
   useEffect(()=>{
     fetch(WEBHOOK_URL).then(r=>r.json()).then(d=>{setClients(Array.isArray(d)?d:[]);setLoading(false)}).catch(e=>{setError(e.message);setLoading(false)})
@@ -1280,7 +1273,7 @@ export default function App() {
       {showLogout&&<LogoutModal onConfirm={()=>{setLoggedIn(false);setShowLogout(false)}} onCancel={()=>setShowLogout(false)}/>}
       <Sidebar active={activeNav} onNav={handleNav} onSignOut={()=>setShowLogout(true)}/>
       <div style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}}>
-        <Topbar page={activeNav} search={navSearch} setSearch={setNavSearch} onNav={handleNav} onSignOut={()=>setShowLogout(true)} notifs={notifs} setNotifs={setNotifs}/>
+        <Topbar page={activeNav} search={navSearch} setSearch={setNavSearch} onNav={handleNav} onSignOut={()=>setShowLogout(true)} notifs={notifs} setNotifs={setNotifs} avatar={avatar}/>
         <div style={{flex:1,overflowY:'auto'}}>
           {activeNav==='Dashboard'&&<DashboardPage {...sharedProps} onShowAdd={()=>setShowAdd(true)} search={navSearch} setSearch={setNavSearch}/>}
           {activeNav==='Patients'&&<PatientsPage {...sharedProps} showAdd={showAdd} setShowAdd={setShowAdd}/>}
@@ -1288,7 +1281,7 @@ export default function App() {
           {activeNav==='Analytics'&&<AnalyticsPage clients={clients}/>}
           {activeNav==='Settings'&&<SettingsPage/>}
           {activeNav==='Notifications'&&<NotificationsPage notifs={notifs} setNotifs={setNotifs}/>}
-          {activeNav==='Profile'&&<ProfilePage darkMode={darkMode} setDarkMode={setDarkMode}/>}
+          {activeNav==='Profile'&&<ProfilePage darkMode={darkMode} setDarkMode={setDarkMode} avatar={avatar} setAvatar={setAvatar}/>}
         </div>
       </div>
       {activeNav==='Dashboard'&&showAdd&&<AddModal onClose={()=>setShowAdd(false)} onAdd={c=>{const nc={Client_ID:`CLT-${crypto.randomUUID().slice(0,8)}`,...c,Status:'Active',Last_Reminder_Sent:'',Next_Reminder_Date:'',row_number:Date.now()+Math.random()};setClients(cs=>[...cs,nc]);showToast(`${c.Full_Name} added`);setShowAdd(false)}}/>}
