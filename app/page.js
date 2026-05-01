@@ -173,11 +173,11 @@ function AddModal({onClose, onAdd}) {
 
 // ─── Sidebar ──────────────────────────────────────────────────────────────────
 const NAV_ITEMS = [
-  {id:'Dashboard', icon:'▦'},
-  {id:'Patients',  icon:'👥', badge:3},
-  {id:'Appointments', icon:'📅'},
-  {id:'Analytics', icon:'📊'},
-  {id:'Settings',  icon:'⚙'},
+  {id:'Dashboard'},
+  {id:'Patients', badge:3},
+  {id:'Appointments'},
+  {id:'Analytics'},
+  {id:'Settings'},
 ]
 
 function Sidebar({active, onNav, onSignOut}) {
@@ -192,7 +192,6 @@ function Sidebar({active, onNav, onSignOut}) {
           const isActive = active === n.id
           return (
             <div key={n.id} onClick={()=>onNav(n.id)} style={{display:'flex',alignItems:'center',gap:10,padding:'9px 10px',borderRadius:9,cursor:'pointer',marginBottom:2,background:isActive?C.blueSoft:'transparent',color:isActive?C.blue:C.label,fontWeight:isActive?600:400,fontSize:13,transition:'background 120ms',position:'relative'}}>
-              <span style={{fontSize:15}}>{n.icon}</span>
               <span>{n.id}</span>
               {n.badge&&!isActive&&<span style={{...pill(C.redSoft,C.red),padding:'1px 7px',fontSize:10,marginLeft:'auto'}}>{n.badge}</span>}
             </div>
