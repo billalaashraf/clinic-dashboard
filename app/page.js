@@ -215,10 +215,10 @@ function Sidebar({active, onNav, onSignOut}) {
 }
 
 // ─── Topbar ───────────────────────────────────────────────────────────────────
-function Topbar({page, notifCount=2}) {
+function Topbar({page, search, setSearch, notifCount=2}) {
   return (
     <div style={{height:58,background:C.white,borderBottom:`1px solid ${C.border}`,display:'flex',alignItems:'center',padding:'0 28px',gap:16,flexShrink:0,position:'sticky',top:0,zIndex:10}}>
-      <input placeholder="Search patients, treatments..." style={{...inp,width:280,borderRadius:10,background:'#f9fafb',fontSize:13,height:36,padding:'0 14px'}}/>
+      <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search patients, treatments..." style={{...inp,width:280,borderRadius:10,background:'#f9fafb',fontSize:13,height:36,padding:'0 14px'}}/>
       <div style={{marginLeft:'auto',display:'flex',alignItems:'center',gap:12}}>
         <div style={{position:'relative',width:36,height:36,borderRadius:10,background:'#f9fafb',border:`1px solid ${C.border}`,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',fontSize:16}}>
           🔔
@@ -250,8 +250,7 @@ function KpiCard({label, value, color, subtext, bars}) {
 }
 
 // ─── Dashboard Page ───────────────────────────────────────────────────────────
-function DashboardPage({clients, loading, error, onShowAdd, sending, setSending, doing, setDoing, editRow, setEditRow, editV, setEditV, setClients, showToast, selected, setSelected}) {
-  const [search,setSearch]=useState('')
+function DashboardPage({clients, loading, error, onShowAdd, sending, setSending, doing, setDoing, editRow, setEditRow, editV, setEditV, setClients, showToast, selected, setSelected, search, setSearch}) {
   const [fStage,setFStage]=useState('All')
   const [fStatus,setFStatus]=useState('All')
 
@@ -906,6 +905,7 @@ export default function App() {
   const [editV,setEditV]             = useState({})
   const [activeNav,setActiveNav]     = useState('Dashboard')
   const [selected,setSelected]       = useState(null)
+  const [navSearch,setNavSearch]     = useState('')
 
   useEffect(()=>{
     fetch(WEBHOOK_URL).then(r=>r.json()).then(d=>{setClients(Array.isArray(d)?d:[]);setLoading(false)}).catch(e=>{setError(e.message);setLoading(false)})
@@ -924,9 +924,9 @@ export default function App() {
       {showLogout&&<LogoutModal onConfirm={()=>{setLoggedIn(false);setShowLogout(false)}} onCancel={()=>setShowLogout(false)}/>}
       <Sidebar active={activeNav} onNav={handleNav} onSignOut={()=>setShowLogout(true)}/>
       <div style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}}>
-        <Topbar page={activeNav}/>
+        <Topbar page={activeNav} search={navSearch} setSearch={setNavSearch}/>
         <div style={{flex:1,overflowY:'auto'}}>
-          {activeNav==='Dashboard'&&<DashboardPage {...sharedProps} onShowAdd={()=>setShowAdd(true)}/>}
+          {activeNav==='Dashboard'&&<DashboardPage {...sharedProps} onShowAdd={()=>setShowAdd(true)} search={navSearch} setSearch={setNavSearch}/>}
           {activeNav==='Patients'&&<PatientsPage {...sharedProps} showAdd={showAdd} setShowAdd={setShowAdd}/>}
           {activeNav==='Appointments'&&<AppointmentsPage/>}
           {activeNav==='Analytics'&&<AnalyticsPage clients={clients}/>}
