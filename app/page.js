@@ -142,7 +142,11 @@ function AddModal({onClose, onAdd}) {
     if(!f.Email.trim()) return setErr('Email is required')
     if(!f.Treatment_Date) return setErr('Treatment date is required')
     setErr('');setSaving(true)
-    try { await fetch(ADD_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(f)}); onAdd(f) }
+    try {
+      const res  = await fetch(ADD_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(f)})
+      const data = await res.json().catch(()=>({}))
+      onAdd(f, data.row_number ?? null)
+    }
     catch { setErr('Failed to add client.') }
     finally { setSaving(false) }
   }
@@ -838,7 +842,7 @@ function PatientsPage({clients,loading,error,showAdd,setShowAdd,sending,setSendi
       </div>
 
       {selected&&<PatientDetailPanel client={selected} onClose={()=>setSelected(null)} sending={sending} setSending={setSending} doing={doing} setDoing={setDoing} editRow={editRow} setEditRow={setEditRow} editV={editV} setEditV={setEditV} setClients={setClients} showToast={showToast} setSelected={setSelected}/>}
-      {showAdd&&<AddModal onClose={()=>setShowAdd(false)} onAdd={c=>{const nc={Client_ID:`CLT-${crypto.randomUUID().slice(0,8)}`,...c,Status:'Active',Last_Reminder_Sent:'',Next_Reminder_Date:'',row_number:Date.now()+Math.random()};setClients(cs=>[...cs,nc]);showToast(`${c.Full_Name} added`);setTimeout(()=>setShowAdd(false),500)}}/>}
+      {showAdd&&<AddModal onClose={()=>setShowAdd(false)} onAdd={(c,rowNum)=>{const nc={Client_ID:`CLT-${crypto.randomUUID().slice(0,8)}`,...c,Status:'Active',Last_Reminder_Sent:'',Next_Reminder_Date:'',row_number:rowNum??Date.now()};setClients(cs=>[...cs,nc]);showToast(`${c.Full_Name} added`);setTimeout(()=>setShowAdd(false),500)}}/>}
     </div>
   )
 }
@@ -1448,7 +1452,7 @@ export default function App() {
           {activeNav==='Profile'&&<ProfilePage darkMode={darkMode} setDarkMode={setDarkMode} avatar={avatar} setAvatar={setAvatar}/>}
         </div>
       </div>
-      {activeNav==='Dashboard'&&showAdd&&<AddModal onClose={()=>setShowAdd(false)} onAdd={c=>{const nc={Client_ID:`CLT-${crypto.randomUUID().slice(0,8)}`,...c,Status:'Active',Last_Reminder_Sent:'',Next_Reminder_Date:'',row_number:Date.now()+Math.random()};setClients(cs=>[...cs,nc]);showToast(`${c.Full_Name} added`);setShowAdd(false)}}/>}
+      {activeNav==='Dashboard'&&showAdd&&<AddModal onClose={()=>setShowAdd(false)} onAdd={(c,rowNum)=>{const nc={Client_ID:`CLT-${crypto.randomUUID().slice(0,8)}`,...c,Status:'Active',Last_Reminder_Sent:'',Next_Reminder_Date:'',row_number:rowNum??Date.now()};setClients(cs=>[...cs,nc]);showToast(`${c.Full_Name} added`);setShowAdd(false)}}/>}
     </div>
   )
 }
