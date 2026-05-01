@@ -216,12 +216,12 @@ function Sidebar({active, onNav, onSignOut}) {
 
 // ─── Topbar ───────────────────────────────────────────────────────────────────
 const SAMPLE_NOTIFS = [
-  {id:1, icon:'⚠️', title:'Critical: Aarav Mehta overdue',     body:'Follow-up is 5 days overdue. AED 12,400 at risk.',     time:'2m ago',  unread:true},
-  {id:2, icon:'💬', title:'Reminder sent to Sophia Reed',       body:'WhatsApp reminder delivered successfully.',           time:'14m ago', unread:true},
-  {id:3, icon:'📅', title:'New appointment booked',             body:'Omar Al Farsi — Dr. Ali Raza, today 11:00 AM.',       time:'1h ago',  unread:true},
-  {id:4, icon:'✅', title:'Maya Collins marked as done',        body:'Follow-up completed. Next session in 14 days.',       time:'3h ago',  unread:false},
-  {id:5, icon:'💰', title:'Revenue milestone reached',          body:'AED 100,000 recovered this month.',                  time:'5h ago',  unread:false},
-  {id:6, icon:'🔧', title:'EHR integration reconnected',        body:'Sync resumed after brief interruption.',              time:'Yesterday',unread:false},
+  {id:1, title:'Critical: Aarav Mehta overdue',     body:'Follow-up is 5 days overdue. AED 12,400 at risk.',     time:'2m ago',  unread:true},
+  {id:2, title:'Reminder sent to Sophia Reed',       body:'WhatsApp reminder delivered successfully.',           time:'14m ago', unread:true},
+  {id:3, title:'New appointment booked',             body:'Omar Al Farsi — Dr. Ali Raza, today 11:00 AM.',       time:'1h ago',  unread:true},
+  {id:4, title:'Maya Collins marked as done',        body:'Follow-up completed. Next session in 14 days.',       time:'3h ago',  unread:false},
+  {id:5, title:'Revenue milestone reached',          body:'AED 100,000 recovered this month.',                  time:'5h ago',  unread:false},
+  {id:6, title:'EHR integration reconnected',        body:'Sync resumed after brief interruption.',              time:'Yesterday',unread:false},
 ]
 
 function Topbar({page, search, setSearch, onNav, onSignOut}) {
@@ -260,7 +260,6 @@ function Topbar({page, search, setSearch, onNav, onSignOut}) {
               <div style={{maxHeight:320,overflowY:'auto'}}>
                 {notifs.map(n=>(
                   <div key={n.id} onClick={()=>setNotifs(ns=>ns.map(x=>x.id===n.id?{...x,unread:false}:x))} style={{display:'flex',gap:12,padding:'12px 16px',borderBottom:`1px solid #f3f4f6`,cursor:'pointer',background:n.unread?'#fafbff':C.white,transition:'background 120ms'}}>
-                    <span style={{fontSize:18,flexShrink:0,marginTop:1}}>{n.icon}</span>
                     <div style={{flex:1,minWidth:0}}>
                       <div style={{fontSize:12,fontWeight:n.unread?700:500,color:C.body,marginBottom:2}}>{n.title}</div>
                       <div style={{fontSize:11,color:C.muted,lineHeight:1.4}}>{n.body}</div>
