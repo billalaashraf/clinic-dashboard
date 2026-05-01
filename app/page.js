@@ -252,7 +252,14 @@ const SAMPLE_NOTIFS = [
 function Topbar({page, search, setSearch, onNav, onSignOut, notifs, setNotifs}) {
   const [showNotifs, setShowNotifs] = useState(false)
   const [showUser,   setShowUser]   = useState(false)
+  const [topbarAvatar, setTopbarAvatar] = useState(()=>localStorage.getItem('clinicAvatar')||null)
   const unreadCount = notifs.filter(n=>n.unread).length
+
+  useEffect(()=>{
+    function onStorage(e){ if(e.key==='clinicAvatar') setTopbarAvatar(e.newValue||null) }
+    window.addEventListener('storage', onStorage)
+    return ()=>window.removeEventListener('storage', onStorage)
+  },[])
 
   useEffect(()=>{
     function handleClick(e) {
@@ -305,7 +312,9 @@ function Topbar({page, search, setSearch, onNav, onSignOut, notifs, setNotifs}) 
         {/* User avatar */}
         <div data-dropdown="user" style={{position:'relative'}}>
           <div onClick={()=>{setShowUser(v=>!v);setShowNotifs(false)}} style={{display:'flex',alignItems:'center',gap:8,cursor:'pointer',padding:'4px 6px',borderRadius:9,transition:'background 120ms'}}>
-            <div style={{width:32,height:32,borderRadius:10,background:C.blueSoft,display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,fontWeight:700,color:C.blueDark}}>Dr</div>
+            <div style={{width:32,height:32,borderRadius:10,background:C.blueSoft,display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,fontWeight:700,color:C.blueDark,overflow:'hidden'}}>
+              {topbarAvatar?<img src={topbarAvatar} style={{width:'100%',height:'100%',objectFit:'cover'}} alt="avatar"/>:'Dr'}
+            </div>
             <div>
               <div style={{fontSize:12,fontWeight:600,color:C.body}}>Dr. Admin</div>
               <div style={{fontSize:10,color:C.muted}}>Clinic Manager</div>
