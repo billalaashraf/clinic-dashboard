@@ -552,6 +552,184 @@ function DashboardPage({clients, loading, error, onShowAdd, sending, setSending,
   )
 }
 
+// ─── Patient Detail Panel ─────────────────────────────────────────────────────
+function PatientDetailPanel({client:c, onClose, sending, setSending, doing, setDoing, editRow, setEditRow, editV, setEditV, setClients, showToast, setSelected}) {
+  const [tab, setTab]         = useState('overview')
+  const noteKey               = `clinicNote_${c.Client_ID}`
+  const [note, setNote]       = useState(()=>typeof window!=='undefined'?localStorage.getItem(noteKey)||'':'')
+  const [noteSaved,setNoteSaved] = useState(false)
+
+  const pri  = getPriority(c)
+  const rev  = getRevenue(c)
+  const diff = dayDiff(c.Next_Reminder_Date)
+  const stage= STAGE_STYLE[c.Reminder_Stage]||{bg:'var(--c-subtle)',color:C.label}
+  const initials = c.Full_Name?.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase()||'?'
+
+  async function sendReminder(e) {
+    e.stopPropagation(); setSending(c.Client_ID)
+    try { await fetch(REMIND_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({client_id:c.Client_ID,row_number:c.row_number,name:c.Full_Name,email:c.Email,treatment:c.Treatment_Type})}); showToast(`Reminder sent to ${c.Full_Name}`) }
+    catch { showToast('Failed to send reminder','error') } finally { setSending(null) }
+  }
+  async function markDone(e) {
+    e.stopPropagation(); setDoing(c.Client_ID)
+    try { const ds=new Date().toLocaleDateString('en-GB'); await fetch(UPDATE_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({row_number:c.row_number,field:'Last_Reminder_Sent',value:ds})}); setClients(cs=>cs.map(x=>x.Client_ID===c.Client_ID?{...x,Last_Reminder_Sent:ds}:x)); setSelected(s=>({...s,Last_Reminder_Sent:ds})); showToast(`Marked done for ${c.Full_Name}`) }
+    catch { showToast('Failed','error') } finally { setDoing(null) }
+  }
+  async function saveEdit(e) {
+    e.stopPropagation()
+    try { await fetch(UPDATE_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({row_number:c.row_number,...editV})}); setClients(cs=>cs.map(x=>x.Client_ID===c.Client_ID?{...x,...editV}:x)); setSelected(s=>({...s,...editV})); showToast('Patient updated'); setEditRow(null) }
+    catch { showToast('Failed','error') }
+  }
+  function saveNote() {
+    if(typeof window!=='undefined') localStorage.setItem(noteKey, note)
+    setNoteSaved(true); setTimeout(()=>setNoteSaved(false),2000)
+  }
+
+  // Build a reminders log from available fields
+  const remindersLog = [
+    c.Last_Reminder_Sent && { date:c.Last_Reminder_Sent, type:'Reminder Sent', status:'Delivered' },
+    c.Next_Reminder_Date && { date:c.Next_Reminder_Date, type:'Upcoming Reminder', status: diff===null?'Scheduled':diff<0?'Overdue':diff===0?'Due Today':'Scheduled' },
+    c.Treatment_Date     && { date:c.Treatment_Date,     type:'Treatment',        status:'Completed' },
+  ].filter(Boolean)
+
+  const TABS = ['Overview','Reminders','Notes']
+
+  return (
+    <div style={{position:'fixed',right:0,top:0,bottom:0,width:440,background:C.white,borderLeft:`1px solid ${C.border}`,display:'flex',flexDirection:'column',zIndex:200,boxShadow:'-4px 0 24px rgba(0,0,0,0.08)'}}>
+
+      {/* Header */}
+      <div style={{padding:'20px 22px 16px',borderBottom:`1px solid ${C.border}`,flexShrink:0}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:14}}>
+          <div style={{display:'flex',alignItems:'center',gap:14}}>
+            <div style={{width:48,height:48,borderRadius:14,background:C.blueSoft,display:'flex',alignItems:'center',justifyContent:'center',fontSize:15,fontWeight:800,color:C.blueDark,flexShrink:0}}>{initials}</div>
+            <div>
+              <div style={{fontSize:16,fontWeight:800,color:C.body,letterSpacing:'-0.3px'}}>{c.Full_Name}</div>
+              <div style={{fontSize:12,color:C.muted,marginTop:2}}>{c.Client_ID}</div>
+              <div style={{display:'flex',alignItems:'center',gap:8,marginTop:6}}>
+                <span style={pill(stage.bg,stage.color)}>{c.Reminder_Stage}</span>
+                <span style={{fontSize:11,fontWeight:700,color:pri.color}}>{pri.label}</span>
+                <span style={{fontSize:11,color:C.muted}}>· {pri.sub}</span>
+              </div>
+            </div>
+          </div>
+          <button onClick={onClose} style={{background:'none',border:'none',cursor:'pointer',color:C.muted,fontSize:22,lineHeight:1,padding:4}}>×</button>
+        </div>
+        <div style={{fontSize:12,color:C.muted,marginBottom:12}}>{c.Treatment_Type}</div>
+
+        {/* Action buttons */}
+        <div style={{display:'flex',gap:8}}>
+          <button onClick={sendReminder} disabled={sending===c.Client_ID} style={{flex:1,...btn(),padding:'8px 10px',fontSize:12,opacity:sending===c.Client_ID?0.6:1}}>
+            {sending===c.Client_ID?'Sending…':'Send Reminder'}
+          </button>
+          <button onClick={markDone} disabled={doing===c.Client_ID} style={{flex:1,...btn('outline'),padding:'8px 10px',fontSize:12,color:C.green,border:`1px solid ${C.green}`,opacity:doing===c.Client_ID?0.6:1}}>
+            {doing===c.Client_ID?'Saving…':'✓ Mark Done'}
+          </button>
+          <button onClick={e=>{e.stopPropagation();setEditRow(editRow===c.Client_ID?null:c.Client_ID);setEditV({Reminder_Stage:c.Reminder_Stage,Next_Reminder_Date:c.Next_Reminder_Date||''})}} style={{...btn('outline'),padding:'8px 12px',fontSize:12}}>✎</button>
+        </div>
+
+        {/* Inline edit save when edit row is active */}
+        {editRow===c.Client_ID&&(
+          <div style={{marginTop:12,display:'flex',flexDirection:'column',gap:10}}>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+              <div><label style={lbl}>Stage</label><select style={{...inp,fontSize:12}} value={editV.Reminder_Stage} onClick={e=>e.stopPropagation()} onChange={e=>setEditV(v=>({...v,Reminder_Stage:e.target.value}))}>{STAGES.map(s=><option key={s}>{s}</option>)}</select></div>
+              <div><label style={lbl}>Next Follow-up</label><input type="date" style={{...inp,fontSize:12}} value={editV.Next_Reminder_Date?editV.Next_Reminder_Date.split('/').reverse().join('-'):''} onClick={e=>e.stopPropagation()} onChange={e=>{const p=e.target.value.split('-');setEditV(v=>({...v,Next_Reminder_Date:`${p[2]}/${p[1]}/${p[0]}`}))}}/></div>
+            </div>
+            <div style={{display:'flex',gap:8}}>
+              <button onClick={saveEdit} style={{...btn(),flex:1,padding:'8px',fontSize:12}}>Save Changes</button>
+              <button onClick={e=>{e.stopPropagation();setEditRow(null)}} style={{...btn('outline'),padding:'8px 12px',fontSize:12}}>Cancel</button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Tabs */}
+      <div style={{display:'flex',borderBottom:`1px solid ${C.border}`,flexShrink:0}}>
+        {TABS.map(t=>(
+          <button key={t} onClick={()=>setTab(t)} style={{flex:1,padding:'11px 8px',border:'none',borderBottom:`2px solid ${tab===t?C.blue:'transparent'}`,background:'none',cursor:'pointer',fontSize:13,fontWeight:tab===t?700:400,color:tab===t?C.blue:C.muted,fontFamily:'inherit',transition:'all 150ms'}}>{t}</button>
+        ))}
+      </div>
+
+      {/* Tab content */}
+      <div style={{flex:1,overflowY:'auto',padding:'20px 22px'}}>
+
+        {tab==='Overview'&&(
+          <div>
+            {[
+              ['Phone / WhatsApp', c.WhatsApp_Number||'—'],
+              ['Email',            c.Email||'—'],
+              ['Treatment Date',   c.Treatment_Date||'—'],
+              ['Next Follow-up',   diff===null?'Not set':diff===0?`${c.Next_Reminder_Date} (Today)`:diff<0?`${c.Next_Reminder_Date} (${Math.abs(diff)}d overdue)`:c.Next_Reminder_Date?`${c.Next_Reminder_Date} (in ${diff}d)`:'Not set'],
+              ['Session',          c.Session_Number&&c.Total_Sessions_Planned?`${c.Session_Number} of ${c.Total_Sessions_Planned}`:c.Session_Number||'—'],
+              ['Revenue at Risk',  `AED ${rev.toLocaleString()}`],
+              ['Status',           c.Status||'—'],
+              ['Last Reminder',    c.Last_Reminder_Sent||'Never'],
+            ].map(([k,v])=>(
+              <div key={k} style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',padding:'10px 0',borderBottom:`1px solid var(--c-subtle)`}}>
+                <span style={{fontSize:12,color:C.muted,fontWeight:600,flexShrink:0,marginRight:12}}>{k}</span>
+                <span style={{fontSize:12,color:C.body,textAlign:'right',wordBreak:'break-word'}}>{v}</span>
+              </div>
+            ))}
+            <div style={{marginTop:16,padding:'12px 14px',background:'#f0fdf4',borderRadius:10,border:'1px solid #bbf7d0'}}>
+              <div style={{fontSize:11,color:C.green,fontWeight:700,marginBottom:4,textTransform:'uppercase',letterSpacing:'0.06em'}}>AI Recommendation</div>
+              <div style={{fontSize:12,color:C.label,lineHeight:1.6}}>{getAIMove(c)}</div>
+            </div>
+          </div>
+        )}
+
+        {tab==='Reminders'&&(
+          <div>
+            <div style={{fontSize:12,color:C.muted,marginBottom:16}}>Reminder history for {c.Full_Name}</div>
+            {remindersLog.length===0
+              ? <div style={{padding:'32px 0',textAlign:'center',color:C.muted,fontSize:13}}>No reminder records found.</div>
+              : remindersLog.map((r,i)=>{
+                  const statusColor = r.status==='Delivered'?C.green:r.status==='Overdue'?C.red:r.status==='Due Today'?C.amber:r.status==='Completed'?C.teal:C.muted
+                  const statusBg    = r.status==='Delivered'?C.greenSoft:r.status==='Overdue'?C.redSoft:r.status==='Due Today'?C.amberSoft:r.status==='Completed'?C.tealSoft:'var(--c-subtle)'
+                  return (
+                    <div key={i} style={{display:'flex',alignItems:'center',gap:14,padding:'12px 0',borderBottom:`1px solid var(--c-subtle)`}}>
+                      <div style={{width:8,height:8,borderRadius:'50%',background:statusColor,flexShrink:0,marginTop:2}}/>
+                      <div style={{flex:1}}>
+                        <div style={{fontSize:13,fontWeight:600,color:C.body}}>{r.type}</div>
+                        <div style={{fontSize:11,color:C.muted,marginTop:2}}>{r.date}</div>
+                      </div>
+                      <span style={pill(statusBg,statusColor)}>{r.status}</span>
+                    </div>
+                  )
+                })
+            }
+            {c.Reminders_Log&&Array.isArray(c.Reminders_Log)&&c.Reminders_Log.map((r,i)=>(
+              <div key={`log-${i}`} style={{display:'flex',alignItems:'center',gap:14,padding:'12px 0',borderBottom:`1px solid var(--c-subtle)`}}>
+                <div style={{width:8,height:8,borderRadius:'50%',background:C.blue,flexShrink:0}}/>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:13,fontWeight:600,color:C.body}}>{r.type||'Reminder'}</div>
+                  <div style={{fontSize:11,color:C.muted,marginTop:2}}>{r.date||r.Date||'—'}</div>
+                  {r.notes&&<div style={{fontSize:11,color:C.muted,marginTop:2,fontStyle:'italic'}}>{r.notes}</div>}
+                </div>
+                {r.status&&<span style={pill('var(--c-subtle)',C.muted)}>{r.status}</span>}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {tab==='Notes'&&(
+          <div>
+            <label style={{...lbl,marginBottom:8}}>Notes for {c.Full_Name}</label>
+            <textarea
+              value={note}
+              onChange={e=>setNote(e.target.value)}
+              placeholder="Add notes about this patient — follow-up context, preferences, concerns…"
+              style={{...inp,minHeight:200,resize:'vertical',lineHeight:1.6,fontSize:13}}
+            />
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginTop:10}}>
+              <span style={{fontSize:11,color:C.muted}}>{note.length} characters</span>
+              <button onClick={saveNote} style={{...btn(),padding:'8px 20px',fontSize:12,background:noteSaved?C.green:C.blue}}>{noteSaved?'Saved!':'Save Notes'}</button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ─── Patients Page ────────────────────────────────────────────────────────────
 function PatientsPage({clients,loading,error,showAdd,setShowAdd,sending,setSending,doing,setDoing,editRow,setEditRow,editV,setEditV,setClients,showToast,selected,setSelected}) {
   const [search,setSearch]=useState('')
@@ -659,21 +837,7 @@ function PatientsPage({clients,loading,error,showAdd,setShowAdd,sending,setSendi
         )}
       </div>
 
-      {selected&&(
-        <div style={{position:'fixed',right:0,top:0,bottom:0,width:290,background:C.white,borderLeft:`1px solid ${C.border}`,padding:20,overflowY:'auto',zIndex:200,boxShadow:'-4px 0 20px rgba(0,0,0,0.07)'}}>
-          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:18}}>
-            <div style={{fontSize:15,fontWeight:700,color:C.body}}>{selected.Full_Name}</div>
-            <button onClick={()=>setSelected(null)} style={{background:'none',border:'none',cursor:'pointer',color:C.muted,fontSize:22,lineHeight:1}}>×</button>
-          </div>
-          {[['Client ID',selected.Client_ID],['Treatment',selected.Treatment_Type],['WhatsApp',selected.WhatsApp_Number],['Email',selected.Email||'—'],['Status',selected.Status]].map(([k,v])=>(
-            <div key={k} style={{marginBottom:14}}><div style={{fontSize:11,color:C.muted,marginBottom:3,fontWeight:600}}>{k}</div><div style={{fontSize:13,color:C.body}}>{v}</div></div>
-          ))}
-          <div style={{marginBottom:14}}><div style={{fontSize:11,color:C.muted,marginBottom:4,fontWeight:600}}>Stage</div><select value={editV.Reminder_Stage||selected.Reminder_Stage} onChange={e=>{setEditV(v=>({...v,Reminder_Stage:e.target.value}));setEditRow(selected.Client_ID)}} style={{...inp,fontSize:12}}>{STAGES.map(s=><option key={s}>{s}</option>)}</select></div>
-          <div style={{marginBottom:18}}><div style={{fontSize:11,color:C.muted,marginBottom:4,fontWeight:600}}>Next Follow-up</div><input type="date" value={editV.Next_Reminder_Date?editV.Next_Reminder_Date.split('/').reverse().join('-'):selected.Next_Reminder_Date?selected.Next_Reminder_Date.split('/').reverse().join('-'):''} onChange={e=>{const p=e.target.value.split('-');setEditV(v=>({...v,Next_Reminder_Date:`${p[2]}/${p[1]}/${p[0]}`}));setEditRow(selected.Client_ID)}} style={{...inp,fontSize:12}}/></div>
-          {editRow===selected.Client_ID&&<button onClick={e=>saveEdit(selected,e)} style={{...btn(),width:'100%',marginBottom:14}}>Save Changes</button>}
-          <div><div style={{fontSize:11,color:C.muted,marginBottom:4,fontWeight:600}}>AI Recommendation</div><div style={{fontSize:12,color:C.label,padding:'10px 12px',background:'#f0fdf4',borderRadius:8,border:`1px solid #bbf7d0`,lineHeight:1.5}}>{getAIMove(selected)}</div></div>
-        </div>
-      )}
+      {selected&&<PatientDetailPanel client={selected} onClose={()=>setSelected(null)} sending={sending} setSending={setSending} doing={doing} setDoing={setDoing} editRow={editRow} setEditRow={setEditRow} editV={editV} setEditV={setEditV} setClients={setClients} showToast={showToast} setSelected={setSelected}/>}
       {showAdd&&<AddModal onClose={()=>setShowAdd(false)} onAdd={c=>{const nc={Client_ID:`CLT-${crypto.randomUUID().slice(0,8)}`,...c,Status:'Active',Last_Reminder_Sent:'',Next_Reminder_Date:'',row_number:Date.now()+Math.random()};setClients(cs=>[...cs,nc]);showToast(`${c.Full_Name} added`);setTimeout(()=>setShowAdd(false),500)}}/>}
     </div>
   )
