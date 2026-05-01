@@ -1,6 +1,7 @@
 export const metadata = {
   title: 'ClinicPulse — Command Center',
   description: 'AI-powered clinic management dashboard',
+  icons: { icon: '/favicon.svg' },
 }
 
 export default function RootLayout({ children }) {
