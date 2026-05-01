@@ -199,10 +199,10 @@ function Sidebar({active, onNav, onSignOut}) {
         })}
       </div>
       <div style={{borderTop:`1px solid ${C.border}`,padding:'14px 10px'}}>
-        <div style={{display:'flex',alignItems:'center',gap:10,padding:'8px 10px',marginBottom:4}}>
-          <div style={{width:32,height:32,borderRadius:10,background:C.blueSoft,display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,fontWeight:700,color:C.blueDark,flexShrink:0}}>Dr</div>
+        <div onClick={()=>onNav('Profile')} style={{display:'flex',alignItems:'center',gap:10,padding:'8px 10px',marginBottom:4,borderRadius:9,cursor:'pointer',background:active==='Profile'?C.blueSoft:'transparent',transition:'background 120ms'}}>
+          <div style={{width:32,height:32,borderRadius:10,background:C.blueSoft,display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:800,color:C.blueDark,flexShrink:0}}>Dr</div>
           <div>
-            <div style={{fontSize:12,fontWeight:600,color:C.body}}>Dr. Admin</div>
+            <div style={{fontSize:12,fontWeight:600,color:active==='Profile'?C.blue:C.body}}>Dr. Admin</div>
             <div style={{fontSize:10,color:C.muted}}>Clinic Manager</div>
           </div>
         </div>
@@ -216,18 +216,17 @@ function Sidebar({active, onNav, onSignOut}) {
 
 // ─── Topbar ───────────────────────────────────────────────────────────────────
 const SAMPLE_NOTIFS = [
-  {id:1, title:'Critical: Aarav Mehta overdue',     body:'Follow-up is 5 days overdue. AED 12,400 at risk.',     time:'2m ago',  unread:true},
-  {id:2, title:'Reminder sent to Sophia Reed',       body:'WhatsApp reminder delivered successfully.',           time:'14m ago', unread:true},
-  {id:3, title:'New appointment booked',             body:'Omar Al Farsi — Dr. Ali Raza, today 11:00 AM.',       time:'1h ago',  unread:true},
-  {id:4, title:'Maya Collins marked as done',        body:'Follow-up completed. Next session in 14 days.',       time:'3h ago',  unread:false},
-  {id:5, title:'Revenue milestone reached',          body:'AED 100,000 recovered this month.',                  time:'5h ago',  unread:false},
-  {id:6, title:'EHR integration reconnected',        body:'Sync resumed after brief interruption.',              time:'Yesterday',unread:false},
+  {id:1, type:'critical',     title:'Critical: Aarav Mehta overdue',          body:'No contact in 14 days. Revenue at risk: AED 12,400.',         time:'2m ago',   unread:true},
+  {id:2, type:'revenue',      title:'Revenue recovered — AED 8,220',          body:'Sophia Reed confirmed appointment via WhatsApp.',              time:'18m ago',  unread:true},
+  {id:3, type:'appointments', title:'New appointment booked',                  body:'Omar Al Farsi — Dr. Ali Raza, today 11:00 AM.',               time:'1h ago',   unread:true},
+  {id:4, type:'critical',     title:'At-risk patient: Ravi Sharma',           body:'Last visit was 57 days ago. Recommend outreach.',             time:'3h ago',   unread:false},
+  {id:5, type:'revenue',      title:'Weekly analytics report ready',          body:'Revenue up 14.2% vs last period. View full report.',          time:'5h ago',   unread:false},
+  {id:6, type:'system',       title:'EHR integration reconnected',            body:'Sync resumed after brief interruption.',                      time:'Yesterday',unread:false},
 ]
 
-function Topbar({page, search, setSearch, onNav, onSignOut}) {
+function Topbar({page, search, setSearch, onNav, onSignOut, notifs, setNotifs}) {
   const [showNotifs, setShowNotifs] = useState(false)
   const [showUser,   setShowUser]   = useState(false)
-  const [notifs, setNotifs] = useState(SAMPLE_NOTIFS)
   const unreadCount = notifs.filter(n=>n.unread).length
 
   useEffect(()=>{
@@ -270,7 +269,7 @@ function Topbar({page, search, setSearch, onNav, onSignOut}) {
                 ))}
               </div>
               <div style={{padding:'10px 16px',borderTop:`1px solid ${C.border}`,textAlign:'center'}}>
-                <button onClick={()=>{setShowNotifs(false)}} style={{fontSize:12,color:C.blue,background:'none',border:'none',cursor:'pointer',fontWeight:600,fontFamily:'inherit'}}>View all notifications →</button>
+                <button onClick={()=>{setShowNotifs(false);onNav('Notifications')}} style={{fontSize:12,color:C.blue,background:'none',border:'none',cursor:'pointer',fontWeight:600,fontFamily:'inherit'}}>View all notifications →</button>
               </div>
             </div>
           )}
@@ -295,8 +294,9 @@ function Topbar({page, search, setSearch, onNav, onSignOut}) {
                 <div style={{fontSize:11,color:C.muted,marginTop:1}}>admin@clinic.com</div>
               </div>
               {[
-                {label:'Profile', action:()=>{onNav('Settings');setShowUser(false)}},
-                {label:'Settings', action:()=>{onNav('Settings');setShowUser(false)}},
+                {label:'My Profile',   action:()=>{onNav('Profile');       setShowUser(false)}},
+                {label:'Notifications',action:()=>{onNav('Notifications'); setShowUser(false)}},
+                {label:'Settings',     action:()=>{onNav('Settings');      setShowUser(false)}},
               ].map(item=>(
                 <div key={item.label} onClick={item.action} style={{display:'flex',alignItems:'center',padding:'10px 16px',cursor:'pointer',fontSize:13,color:C.label,fontWeight:500,transition:'background 120ms'}}>
                   {item.label}
@@ -941,6 +941,238 @@ function SettingsPage() {
   )
 }
 
+// ─── Notifications Page ───────────────────────────────────────────────────────
+function NotificationsPage({notifs, setNotifs}) {
+  const [filter, setFilter] = useState('All')
+  const FILTERS = ['All','Unread','Critical','Revenue','Appointments','System']
+  const filtered = notifs.filter(n=>{
+    if (filter==='All')          return true
+    if (filter==='Unread')       return n.unread
+    if (filter==='Critical')     return n.type==='critical'
+    if (filter==='Revenue')      return n.type==='revenue'
+    if (filter==='Appointments') return n.type==='appointments'
+    if (filter==='System')       return n.type==='system'
+    return true
+  })
+  const unreadCount = notifs.filter(n=>n.unread).length
+  return (
+    <div style={{padding:28}}>
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:22}}>
+        <div>
+          <div style={{fontSize:26,fontWeight:800,color:C.body,letterSpacing:'-0.7px'}}>Notifications</div>
+          <div style={{fontSize:13,color:C.muted,marginTop:3}}>{unreadCount} unread · {notifs.length} total</div>
+        </div>
+        {unreadCount>0&&<button onClick={()=>setNotifs(ns=>ns.map(n=>({...n,unread:false})))} style={btn('outline')}>Mark all read</button>}
+      </div>
+      <div style={{display:'flex',gap:8,marginBottom:20,flexWrap:'wrap'}}>
+        {FILTERS.map(f=>{
+          const isActive = filter===f
+          const fUnread = f==='Unread' ? unreadCount : 0
+          return (
+            <button key={f} onClick={()=>setFilter(f)} style={{padding:'6px 16px',borderRadius:20,border:`1px solid ${isActive?C.blue:C.border}`,background:isActive?C.blue:'#fff',color:isActive?'#fff':C.label,fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'inherit',transition:'all 150ms'}}>
+              {f}{fUnread>0&&<span style={{marginLeft:6,background:isActive?'rgba(255,255,255,0.3)':C.red,color:'#fff',borderRadius:10,padding:'0 5px',fontSize:10}}>{fUnread}</span>}
+            </button>
+          )
+        })}
+      </div>
+      <div style={{...card,overflow:'hidden'}}>
+        {filtered.length===0&&<div style={{padding:48,textAlign:'center',color:C.muted,fontSize:13}}>No notifications in this category.</div>}
+        {filtered.map((n,i)=>(
+          <div key={n.id} onClick={()=>setNotifs(ns=>ns.map(x=>x.id===n.id?{...x,unread:false}:x))} style={{display:'flex',gap:14,padding:'16px 20px',background:n.unread?'#fafbff':C.white,borderBottom:i<filtered.length-1?`1px solid ${C.border}`:'none',cursor:'pointer',alignItems:'flex-start',transition:'background 120ms'}}>
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:12}}>
+                <div style={{fontSize:13,fontWeight:n.unread?700:600,color:C.body,lineHeight:1.4}}>{n.title}</div>
+                <div style={{display:'flex',alignItems:'center',gap:8,flexShrink:0}}>
+                  {n.unread&&<div style={{width:8,height:8,borderRadius:'50%',background:C.blue,flexShrink:0}}/>}
+                  <span style={{fontSize:11,color:'#9ca3af',fontWeight:500,whiteSpace:'nowrap'}}>{n.time}</span>
+                  <button onClick={e=>{e.stopPropagation();setNotifs(ns=>ns.filter(x=>x.id!==n.id))}} style={{width:22,height:22,borderRadius:6,border:'none',background:'transparent',cursor:'pointer',color:C.muted,fontSize:14,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'inherit',opacity:0.5}}>×</button>
+                </div>
+              </div>
+              <div style={{fontSize:12,color:C.muted,marginTop:4,lineHeight:1.5}}>{n.body}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ─── Profile Page ─────────────────────────────────────────────────────────────
+function ProfilePage() {
+  const [tab,setTab]         = useState('profile')
+  const [avatar,setAvatar]   = useState(null)
+  const [saved,setSaved]     = useState(false)
+  const [deleteConf,setDeleteConf] = useState(false)
+  const [showPw,setShowPw]   = useState({cur:false,nw:false,cf:false})
+  const [profile,setProfile] = useState({firstName:'Admin',lastName:'Dr',displayName:'Dr. Admin',email:'admin@clinic.com',phone:'+971 50 000 0000',department:'General',timezone:'UTC+04:00',licenseNo:'DHA-12345',bio:''})
+  const [notifPrefs,setNotifPrefs] = useState({email:true,sms:true,push:false,weeklyDigest:true,reminders:true})
+  const [displayPrefs,setDisplayPrefs] = useState({darkMode:false,compactView:false})
+  const [pw,setPw] = useState({cur:'',nw:'',cf:''})
+
+  function handleAvatarChange(e) {
+    const file = e.target.files?.[0]
+    if (file) { const r=new FileReader(); r.onload=ev=>setAvatar(ev.target.result); r.readAsDataURL(file) }
+  }
+  function saveProfile(){setSaved(true);setTimeout(()=>setSaved(false),2500)}
+
+  const pwStrength = pw.nw.length===0?0:pw.nw.length<6?1:pw.nw.length<10?2:/[A-Z]/.test(pw.nw)&&/[0-9]/.test(pw.nw)&&pw.nw.length>=10?4:3
+  const pwColors   = ['#e5e7eb',C.red,C.orange,C.amber,C.green]
+  const pwLabels   = ['','Weak','Fair','Good','Strong']
+
+  const TABS = [{id:'profile',label:'Profile Info'},{id:'password',label:'Password'},{id:'preferences',label:'Preferences'},{id:'danger',label:'Danger Zone'}]
+
+  const Toggle=({on,onToggle})=>(
+    <div onClick={onToggle} style={{width:40,height:22,borderRadius:11,background:on?C.blue:'#d1d5db',cursor:'pointer',position:'relative',transition:'background 200ms',flexShrink:0}}>
+      <div style={{position:'absolute',top:3,left:on?21:3,width:16,height:16,borderRadius:'50%',background:'#fff',transition:'left 200ms',boxShadow:'0 1px 3px rgba(0,0,0,0.2)'}}/>
+    </div>
+  )
+
+  return (
+    <div style={{padding:28,maxWidth:720}}>
+      <div style={{fontSize:26,fontWeight:800,color:C.body,letterSpacing:'-0.7px',marginBottom:24}}>My Profile</div>
+
+      {/* Avatar */}
+      <div style={{...card,padding:'24px 28px',marginBottom:20,display:'flex',alignItems:'center',gap:24}}>
+        <div style={{position:'relative',flexShrink:0}}>
+          <div style={{width:80,height:80,borderRadius:20,background:C.blueSoft,display:'flex',alignItems:'center',justifyContent:'center',fontSize:24,fontWeight:800,color:C.blueDark,overflow:'hidden',border:`2px solid ${C.border}`}}>
+            {avatar?<img src={avatar} style={{width:'100%',height:'100%',objectFit:'cover'}} alt="avatar"/>:'Dr'}
+          </div>
+          <label style={{position:'absolute',bottom:-6,right:-6,width:24,height:24,borderRadius:'50%',background:C.blue,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',border:'2px solid #fff',fontSize:12}}>
+            <span style={{color:'#fff'}}>✎</span>
+            <input type="file" accept="image/*" style={{display:'none'}} onChange={handleAvatarChange}/>
+          </label>
+        </div>
+        <div>
+          <div style={{fontSize:16,fontWeight:700,color:C.body}}>{profile.displayName}</div>
+          <div style={{fontSize:13,color:C.muted,marginTop:2}}>{profile.email}</div>
+          <div style={{display:'flex',gap:8,marginTop:10}}>
+            <label style={{...btn(),padding:'6px 14px',fontSize:12,cursor:'pointer'}}>
+              Upload photo<input type="file" accept="image/*" style={{display:'none'}} onChange={handleAvatarChange}/>
+            </label>
+            {avatar&&<button onClick={()=>setAvatar(null)} style={{...btn('outline'),padding:'6px 14px',fontSize:12}}>Remove</button>}
+          </div>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div style={{display:'flex',gap:4,marginBottom:20,background:'#f3f4f6',borderRadius:11,padding:4,width:'fit-content'}}>
+        {TABS.map(t=>(
+          <button key={t.id} onClick={()=>setTab(t.id)} style={{padding:'7px 16px',borderRadius:8,border:'none',cursor:'pointer',fontSize:13,fontWeight:tab===t.id?600:400,background:tab===t.id?C.white:'transparent',color:tab===t.id?C.body:C.muted,boxShadow:tab===t.id?'0 1px 4px rgba(0,0,0,0.08)':'none',transition:'all 150ms',fontFamily:'inherit'}}>{t.label}</button>
+        ))}
+      </div>
+
+      {/* Profile Info */}
+      {tab==='profile'&&(
+        <div style={{...card,padding:'24px 28px'}}>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:16}}>
+            {[['First Name','firstName'],['Last Name','lastName'],['Display Name','displayName'],['Email Address','email'],['Phone Number','phone'],['Department','department'],['Timezone','timezone'],['License No.','licenseNo']].map(([label,key])=>(
+              <div key={key}><label style={lbl}>{label}</label><input style={inp} value={profile[key]} onChange={e=>setProfile(p=>({...p,[key]:e.target.value}))}/></div>
+            ))}
+          </div>
+          <div style={{marginBottom:16}}>
+            <label style={lbl}>Bio <span style={{color:'#9ca3af'}}>(optional)</span></label>
+            <textarea style={{...inp,resize:'vertical',minHeight:80}} value={profile.bio} onChange={e=>setProfile(p=>({...p,bio:e.target.value}))} placeholder="A short bio about yourself..."/>
+            <div style={{fontSize:11,color:C.muted,marginTop:4,textAlign:'right'}}>{profile.bio.length}/300</div>
+          </div>
+          <button onClick={saveProfile} style={{...btn(),background:saved?C.green:C.blue}}>{saved?'Saved!':'Save Changes'}</button>
+        </div>
+      )}
+
+      {/* Password */}
+      {tab==='password'&&(
+        <div style={{...card,padding:'24px 28px'}}>
+          <div style={{fontSize:15,fontWeight:700,color:C.body,marginBottom:18}}>Change Password</div>
+          <div style={{display:'flex',flexDirection:'column',gap:14,marginBottom:20,maxWidth:440}}>
+            {[['Current Password','cur'],['New Password','nw'],['Confirm Password','cf']].map(([label,key])=>(
+              <div key={key}>
+                <label style={lbl}>{label}</label>
+                <div style={{position:'relative'}}>
+                  <input type={showPw[key]?'text':'password'} style={{...inp,paddingRight:40}} value={pw[key]} onChange={e=>setPw(p=>({...p,[key]:e.target.value}))} placeholder="••••••••"/>
+                  <button onClick={()=>setShowPw(s=>({...s,[key]:!s[key]}))} style={{position:'absolute',right:10,top:'50%',transform:'translateY(-50%)',background:'none',border:'none',cursor:'pointer',color:C.muted,fontSize:13,fontFamily:'inherit'}}>{showPw[key]?'Hide':'Show'}</button>
+                </div>
+              </div>
+            ))}
+            {pw.nw.length>0&&(
+              <div>
+                <div style={{display:'flex',justifyContent:'space-between',fontSize:11,color:C.muted,marginBottom:4}}><span>Password strength</span><span style={{color:pwColors[pwStrength],fontWeight:600}}>{pwLabels[pwStrength]}</span></div>
+                <div style={{height:4,background:'#f3f4f6',borderRadius:2,overflow:'hidden'}}>
+                  <div style={{height:'100%',width:`${pwStrength*25}%`,background:pwColors[pwStrength],borderRadius:2,transition:'all 300ms'}}/>
+                </div>
+              </div>
+            )}
+            {pw.cf.length>0&&pw.nw!==pw.cf&&<div style={{fontSize:12,color:C.red}}>Passwords do not match.</div>}
+          </div>
+          <div style={{display:'flex',gap:10}}>
+            <button onClick={()=>setPw({cur:'',nw:'',cf:''})} style={btn()}>Update Password</button>
+            <button onClick={()=>setPw({cur:'',nw:'',cf:''})} style={btn('outline')}>Cancel</button>
+          </div>
+          <div style={{...card,padding:'20px 24px',marginTop:20,background:'#f9fafb'}}>
+            <div style={{fontSize:14,fontWeight:700,color:C.body,marginBottom:4}}>Two-Factor Authentication</div>
+            <div style={{fontSize:13,color:C.muted,marginBottom:14}}>Add an extra layer of security to your account.</div>
+            <button style={btn()}>Enable 2FA</button>
+          </div>
+        </div>
+      )}
+
+      {/* Preferences */}
+      {tab==='preferences'&&(
+        <div style={{...card,padding:'24px 28px'}}>
+          <div style={{fontSize:15,fontWeight:700,color:C.body,marginBottom:4}}>Notifications</div>
+          <div style={{fontSize:12,color:C.muted,marginBottom:16}}>Choose how you receive notifications.</div>
+          {[['email','Email notifications'],['sms','SMS alerts'],['push','Push notifications'],['weeklyDigest','Weekly digest'],['reminders','Appointment reminders']].map(([k,label])=>(
+            <div key={k} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 0',borderBottom:`1px solid #f3f4f6`}}>
+              <span style={{fontSize:13,color:C.label,fontWeight:500}}>{label}</span>
+              <Toggle on={notifPrefs[k]} onToggle={()=>setNotifPrefs(p=>({...p,[k]:!p[k]}))}/>
+            </div>
+          ))}
+          <div style={{fontSize:15,fontWeight:700,color:C.body,marginTop:22,marginBottom:4}}>Display</div>
+          {[['darkMode','Dark mode'],['compactView','Compact view']].map(([k,label])=>(
+            <div key={k} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 0',borderBottom:`1px solid #f3f4f6`}}>
+              <span style={{fontSize:13,color:C.label,fontWeight:500}}>{label}</span>
+              <Toggle on={displayPrefs[k]} onToggle={()=>setDisplayPrefs(p=>({...p,[k]:!p[k]}))}/>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Danger Zone */}
+      {tab==='danger'&&(
+        <div style={{...card,padding:'24px 28px',border:'1.5px solid #fecaca'}}>
+          <div style={{fontSize:15,fontWeight:700,color:'#991b1b',marginBottom:4}}>Danger Zone</div>
+          <div style={{fontSize:12,color:C.muted,marginBottom:22}}>These actions are permanent and cannot be undone.</div>
+          {[
+            {label:'Export My Data',      desc:'Download a copy of all your data.',                                              btnLabel:'Export',         color:C.blue,  solid:true},
+            {label:'Deactivate Account',  desc:'Temporarily disable your account. You can reactivate anytime by signing in.',   btnLabel:'Deactivate',     color:C.amber, solid:false},
+            {label:'Delete Account',      desc:'Permanently delete your account and all associated data.',                       btnLabel:'Delete Account', color:C.red,   solid:false, danger:true},
+          ].map((item,i,arr)=>(
+            <div key={item.label} style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:20,padding:'18px 0',borderBottom:i<arr.length-1?`1px solid #fecaca`:'none'}}>
+              <div>
+                <div style={{fontSize:13,fontWeight:700,color:C.body,marginBottom:4}}>{item.label}</div>
+                <div style={{fontSize:12,color:C.muted,maxWidth:380,lineHeight:1.5}}>{item.desc}</div>
+              </div>
+              <button onClick={item.danger?()=>setDeleteConf(true):undefined} style={{...btn(item.solid?'solid':'outline'),background:item.solid?item.color:'#fff',color:item.solid?'#fff':item.color,border:item.solid?'none':`1px solid ${item.color}`,flexShrink:0,fontSize:12,padding:'8px 16px'}}>{item.btnLabel}</button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Delete confirm modal */}
+      {deleteConf&&(
+        <div style={{position:'fixed',inset:0,background:'rgba(15,20,30,0.45)',backdropFilter:'blur(4px)',zIndex:500,display:'flex',alignItems:'center',justifyContent:'center'}}>
+          <div style={{...card,width:400,padding:'32px 28px',textAlign:'center'}}>
+            <div style={{fontSize:18,fontWeight:700,color:C.body,marginBottom:8}}>Delete account?</div>
+            <div style={{fontSize:13,color:C.muted,marginBottom:24}}>This action is permanent and cannot be undone. All your data will be lost.</div>
+            <div style={{display:'flex',gap:10}}>
+              <button onClick={()=>setDeleteConf(false)} style={{...btn('outline'),flex:1}}>Cancel</button>
+              <button onClick={()=>setDeleteConf(false)} style={{...btn(),flex:1,background:C.red}}>Delete Account</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ─── Login Screen ─────────────────────────────────────────────────────────────
 function LoginScreen({onLogin}) {
   const [email,setEmail]=useState('')
@@ -985,6 +1217,7 @@ export default function App() {
   const [activeNav,setActiveNav]     = useState('Dashboard')
   const [selected,setSelected]       = useState(null)
   const [navSearch,setNavSearch]     = useState('')
+  const [notifs,setNotifs]           = useState(SAMPLE_NOTIFS)
 
   useEffect(()=>{
     fetch(WEBHOOK_URL).then(r=>r.json()).then(d=>{setClients(Array.isArray(d)?d:[]);setLoading(false)}).catch(e=>{setError(e.message);setLoading(false)})
@@ -1003,13 +1236,15 @@ export default function App() {
       {showLogout&&<LogoutModal onConfirm={()=>{setLoggedIn(false);setShowLogout(false)}} onCancel={()=>setShowLogout(false)}/>}
       <Sidebar active={activeNav} onNav={handleNav} onSignOut={()=>setShowLogout(true)}/>
       <div style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}}>
-        <Topbar page={activeNav} search={navSearch} setSearch={setNavSearch} onNav={handleNav} onSignOut={()=>setShowLogout(true)}/>
+        <Topbar page={activeNav} search={navSearch} setSearch={setNavSearch} onNav={handleNav} onSignOut={()=>setShowLogout(true)} notifs={notifs} setNotifs={setNotifs}/>
         <div style={{flex:1,overflowY:'auto'}}>
           {activeNav==='Dashboard'&&<DashboardPage {...sharedProps} onShowAdd={()=>setShowAdd(true)} search={navSearch} setSearch={setNavSearch}/>}
           {activeNav==='Patients'&&<PatientsPage {...sharedProps} showAdd={showAdd} setShowAdd={setShowAdd}/>}
           {activeNav==='Appointments'&&<AppointmentsPage/>}
           {activeNav==='Analytics'&&<AnalyticsPage clients={clients}/>}
           {activeNav==='Settings'&&<SettingsPage/>}
+          {activeNav==='Notifications'&&<NotificationsPage notifs={notifs} setNotifs={setNotifs}/>}
+          {activeNav==='Profile'&&<ProfilePage/>}
         </div>
       </div>
       {activeNav==='Dashboard'&&showAdd&&<AddModal onClose={()=>setShowAdd(false)} onAdd={c=>{const nc={Client_ID:`CLT-${crypto.randomUUID().slice(0,8)}`,...c,Status:'Active',Last_Reminder_Sent:'',Next_Reminder_Date:'',row_number:Date.now()+Math.random()};setClients(cs=>[...cs,nc]);showToast(`${c.Full_Name} added`);setShowAdd(false)}}/>}
