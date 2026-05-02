@@ -148,7 +148,8 @@ function AddModal({onClose, onAdd}) {
       const data = await res.json().catch(()=>({}))
       console.log('[AddModal] response', res.status, data)
       if (!res.ok || !data.success) throw new Error(data.error || data.detail || `Server error ${res.status}`)
-      onAdd(f)
+      console.log('[add-client] n8n Client_ID:', data.Client_ID ?? 'not returned — will reload from sheet')
+      onAdd(f, data.Client_ID ?? null)
     }
     catch(e) { console.error('[AddModal] failed:', e); setErr(e.message||'Failed to add client.') }
     finally { setSaving(false) }
@@ -921,7 +922,7 @@ function PatientsPage({clients,loading,error,showAdd,setShowAdd,sending,setSendi
       </div>
 
       {selected&&<PatientDetailPanel client={selected} onClose={()=>setSelected(null)} sending={sending} setSending={setSending} doing={doing} setDoing={setDoing} editRow={editRow} setEditRow={setEditRow} editV={editV} setEditV={setEditV} setClients={setClients} showToast={showToast} setSelected={setSelected}/>}
-      {showAdd&&<AddModal onClose={()=>setShowAdd(false)} onAdd={(c)=>{showToast(`${c.Full_Name} added`);setShowAdd(false);reloadClients();setTimeout(reloadClients,1500)}}/>}
+      {showAdd&&<AddModal onClose={()=>setShowAdd(false)} onAdd={(c,clientId)=>{console.log('[onAdd] sheet Client_ID:',clientId??'pending reload');showToast(`${c.Full_Name} added`);setShowAdd(false);reloadClients();setTimeout(reloadClients,2000)}}/>}
       {deleteTarget&&<DeleteConfirmModal patient={deleteTarget} deleting={deleting} onConfirm={deletePatient} onCancel={()=>setDeleteTarget(null)}/>}
     </div>
   )
@@ -1504,7 +1505,11 @@ export default function App() {
   const [avatar,setAvatar]           = useState(()=>typeof window!=='undefined'?localStorage.getItem('clinicAvatar')||null:null)
 
   useEffect(()=>{
-    fetch(WEBHOOK_URL).then(r=>r.json()).then(d=>{setClients(Array.isArray(d)?d:[]);setLoading(false)}).catch(e=>{setError(e.message);setLoading(false)})
+    fetch(WEBHOOK_URL,{cache:'no-store'}).then(r=>r.json()).then(d=>{
+      if(!Array.isArray(d)){setError('Unexpected response from sheet');setLoading(false);return}
+      console.log('[init] loaded',d.length,'clients — IDs:',d.map(c=>c.Client_ID))
+      setClients(d);setLoading(false)
+    }).catch(e=>{setError(e.message);setLoading(false)})
   },[])
 
   function showToast(msg, type='success') { setToast({msg,type}) }
@@ -1540,7 +1545,7 @@ export default function App() {
           {activeNav==='Profile'&&<ProfilePage darkMode={darkMode} setDarkMode={setDarkMode} avatar={avatar} setAvatar={setAvatar}/>}
         </div>
       </div>
-      {activeNav==='Dashboard'&&showAdd&&<AddModal onClose={()=>setShowAdd(false)} onAdd={(c)=>{showToast(`${c.Full_Name} added`);setShowAdd(false);reloadClients();setTimeout(reloadClients,1500)}}/>}
+      {activeNav==='Dashboard'&&showAdd&&<AddModal onClose={()=>setShowAdd(false)} onAdd={(c,clientId)=>{console.log('[onAdd] sheet Client_ID:',clientId??'pending reload');showToast(`${c.Full_Name} added`);setShowAdd(false);reloadClients();setTimeout(reloadClients,2000)}}/>}
     </div>
   )
 }

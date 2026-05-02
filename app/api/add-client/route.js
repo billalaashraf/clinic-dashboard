@@ -4,7 +4,6 @@ export async function POST(request) {
   try {
     const body = await request.json()
 
-    // Confirm payload keys before sending
     const payload = {
       Full_Name:             body.Full_Name            || '',
       WhatsApp_Number:       body.WhatsApp_Number       || '',
@@ -36,12 +35,16 @@ export async function POST(request) {
       )
     }
 
-    // Parse row_number from n8n response if present
     let data = {}
-    try { data = JSON.parse(text) } catch { /* n8n returned non-JSON — that's fine */ }
+    try { data = JSON.parse(text) } catch { /* n8n returned non-JSON */ }
 
-    console.log('[add-client] success, row_number:', data.row_number ?? 'not returned')
-    return Response.json({ success: true, row_number: data.row_number ?? null })
+    console.log('[add-client] success | row_number:', data.row_number ?? 'not returned', '| Client_ID:', data.Client_ID ?? 'not returned')
+
+    return Response.json({
+      success:   true,
+      row_number: data.row_number ?? null,
+      Client_ID:  data.Client_ID  ?? null,
+    })
 
   } catch (e) {
     console.error('[add-client] exception:', e.message)
