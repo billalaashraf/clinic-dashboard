@@ -785,7 +785,7 @@ function PatientDetailPanel({client:c, onClose, sending, setSending, doing, setD
 }
 
 // ─── Patients Page ────────────────────────────────────────────────────────────
-function PatientsPage({clients,loading,error,showAdd,setShowAdd,sending,setSending,doing,setDoing,editRow,setEditRow,editV,setEditV,setClients,showToast,selected,setSelected}) {
+function PatientsPage({clients,loading,error,showAdd,setShowAdd,sending,setSending,doing,setDoing,editRow,setEditRow,editV,setEditV,setClients,showToast,selected,setSelected,reloadClients}) {
   const [search,setSearch]=useState('')
   const [fStage,setFStage]=useState('All')
   const [fStatus,setFStatus]=useState('All')
@@ -919,7 +919,7 @@ function PatientsPage({clients,loading,error,showAdd,setShowAdd,sending,setSendi
       </div>
 
       {selected&&<PatientDetailPanel client={selected} onClose={()=>setSelected(null)} sending={sending} setSending={setSending} doing={doing} setDoing={setDoing} editRow={editRow} setEditRow={setEditRow} editV={editV} setEditV={setEditV} setClients={setClients} showToast={showToast} setSelected={setSelected}/>}
-      {showAdd&&<AddModal onClose={()=>setShowAdd(false)} onAdd={(c,rowNum)=>{const nc={Client_ID:`CLT-${crypto.randomUUID().slice(0,8)}`,...c,Status:'Active',Last_Reminder_Sent:'',Next_Reminder_Date:'',row_number:rowNum??Date.now()};setClients(cs=>[...cs,nc]);showToast(`${c.Full_Name} added`);setTimeout(()=>setShowAdd(false),500)}}/>}
+      {showAdd&&<AddModal onClose={()=>setShowAdd(false)} onAdd={(c)=>{showToast(`${c.Full_Name} added`);setShowAdd(false);reloadClients()}}/>}
       {deleteTarget&&<DeleteConfirmModal patient={deleteTarget} deleting={deleting} onConfirm={deletePatient} onCancel={()=>setDeleteTarget(null)}/>}
     </div>
   )
@@ -1507,10 +1507,17 @@ export default function App() {
 
   function showToast(msg, type='success') { setToast({msg,type}) }
   function handleNav(page) { setActiveNav(page); setSelected(null) }
+  async function reloadClients() {
+    try {
+      const d = await fetch(WEBHOOK_URL).then(r=>r.json())
+      console.log('[reloadClients] fetched', Array.isArray(d)?d.length:d, 'rows')
+      setClients(Array.isArray(d)?d:[])
+    } catch(e) { console.error('[reloadClients] failed:', e.message) }
+  }
 
   if (!loggedIn) return <LoginScreen onLogin={()=>setLoggedIn(true)}/>
 
-  const sharedProps = { clients,loading,error,sending,setSending,doing,setDoing,editRow,setEditRow,editV,setEditV,setClients,showToast,selected,setSelected }
+  const sharedProps = { clients,loading,error,sending,setSending,doing,setDoing,editRow,setEditRow,editV,setEditV,setClients,showToast,selected,setSelected,reloadClients }
 
   return (
     <div data-theme={darkMode?'dark':'light'} style={{display:'flex',height:'100vh',overflow:'hidden',background:C.bg,fontFamily:"'Inter',system-ui,sans-serif"}}>
@@ -1530,7 +1537,7 @@ export default function App() {
           {activeNav==='Profile'&&<ProfilePage darkMode={darkMode} setDarkMode={setDarkMode} avatar={avatar} setAvatar={setAvatar}/>}
         </div>
       </div>
-      {activeNav==='Dashboard'&&showAdd&&<AddModal onClose={()=>setShowAdd(false)} onAdd={(c,rowNum)=>{const nc={Client_ID:`CLT-${crypto.randomUUID().slice(0,8)}`,...c,Status:'Active',Last_Reminder_Sent:'',Next_Reminder_Date:'',row_number:rowNum??Date.now()};setClients(cs=>[...cs,nc]);showToast(`${c.Full_Name} added`);setShowAdd(false)}}/>}
+      {activeNav==='Dashboard'&&showAdd&&<AddModal onClose={()=>setShowAdd(false)} onAdd={(c)=>{showToast(`${c.Full_Name} added`);setShowAdd(false);reloadClients()}}/>}
     </div>
   )
 }
