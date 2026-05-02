@@ -5,6 +5,7 @@ const WEBHOOK_URL = '/api/clients'
 const UPDATE_URL  = '/api/update-client'
 const REMIND_URL  = '/api/send-reminder'
 const ADD_URL     = '/api/add-client'
+const DELETE_URL  = '/api/delete-client'
 
 // ─── design tokens ───────────────────────────────────────────────────────────
 // Theme-sensitive tokens reference CSS custom properties so dark mode works
@@ -202,6 +203,25 @@ function AddModal({onClose, onAdd}) {
   )
 }
 
+// ─── Delete Confirm Modal ─────────────────────────────────────────────────────
+function DeleteConfirmModal({patient, onConfirm, onCancel, deleting}) {
+  return (
+    <div style={{position:'fixed',inset:0,background:'rgba(15,20,30,0.45)',backdropFilter:'blur(4px)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center'}} onClick={e=>{if(e.target===e.currentTarget&&!deleting)onCancel()}}>
+      <div style={{...card,padding:'28px 32px',width:400,textAlign:'center'}}>
+        <div style={{width:48,height:48,borderRadius:14,background:C.redSoft,display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 14px',fontSize:22,color:C.red}}>✕</div>
+        <div style={{fontSize:16,fontWeight:700,color:C.body,marginBottom:8}}>Delete Patient?</div>
+        <div style={{fontSize:13,color:C.muted,marginBottom:24,lineHeight:1.6}}>
+          This will permanently remove <strong style={{color:C.body}}>{patient.Full_Name}</strong> ({patient.Client_ID}) from the clinic. This cannot be undone.
+        </div>
+        <div style={{display:'flex',gap:10}}>
+          <button onClick={onCancel} disabled={deleting} style={{...btn('outline'),flex:1}}>Cancel</button>
+          <button onClick={onConfirm} disabled={deleting} style={{...btn(),flex:1,background:C.red,opacity:deleting?0.6:1}}>{deleting?'Deleting…':'Delete'}</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─── Sidebar ──────────────────────────────────────────────────────────────────
 const NAV_ITEMS = [
   {id:'Dashboard'},
@@ -371,6 +391,32 @@ function KpiCard({label, value, color, subtext, bars}) {
 function DashboardPage({clients, loading, error, onShowAdd, sending, setSending, doing, setDoing, editRow, setEditRow, editV, setEditV, setClients, showToast, selected, setSelected, search, setSearch}) {
   const [fStage,setFStage]=useState('All')
   const [fStatus,setFStatus]=useState('All')
+  const [deleteTarget,setDeleteTarget]=useState(null)
+  const [deleting,setDeleting]=useState(false)
+
+  async function deletePatient() {
+    if (!deleteTarget) return
+    setDeleting(true)
+    try {
+      console.log('[deletePatient] sending:', {Client_ID: deleteTarget.Client_ID})
+      const res = await fetch(DELETE_URL, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({Client_ID:deleteTarget.Client_ID})})
+      const data = await res.json()
+      console.log('[deletePatient] response:', res.status, data)
+      if (!res.ok || !data.success) {
+        showToast(data.error||'Delete failed','error')
+      } else {
+        setClients(cs=>cs.filter(x=>x.Client_ID!==deleteTarget.Client_ID))
+        if (selected?.Client_ID===deleteTarget.Client_ID) setSelected(null)
+        showToast(`${deleteTarget.Full_Name} deleted`)
+        setDeleteTarget(null)
+      }
+    } catch(e) {
+      console.error('[deletePatient] exception:', e)
+      showToast('Delete failed: '+e.message,'error')
+    } finally {
+      setDeleting(false)
+    }
+  }
 
   async function sendReminder(c,e) {
     e.stopPropagation();setSending(c.Client_ID)
@@ -528,6 +574,7 @@ function DashboardPage({clients, loading, error, onShowAdd, sending, setSending,
                           <button onClick={e=>sendReminder(c,e)} disabled={sending===c.Client_ID} style={{fontSize:11,padding:'4px 10px',border:'none',borderRadius:7,background:C.blueSoft,color:C.blueDark,cursor:'pointer',opacity:sending===c.Client_ID?0.5:1,fontFamily:'inherit'}}>{sending===c.Client_ID?'...':'WA'}</button>
                           <button onClick={e=>markDone(c,e)} disabled={doing===c.Client_ID} style={{fontSize:11,padding:'4px 8px',border:'none',borderRadius:7,background:C.greenSoft,color:C.green,cursor:'pointer',opacity:doing===c.Client_ID?0.5:1,fontFamily:'inherit'}}>{doing===c.Client_ID?'...':'✓'}</button>
                           <button onClick={e=>{e.stopPropagation();setEditRow(isEdit?null:cid);setEditV({Reminder_Stage:c.Reminder_Stage,Next_Reminder_Date:c.Next_Reminder_Date||''})}} style={{fontSize:11,padding:'4px 8px',border:`1px solid ${C.border}`,borderRadius:7,background:C.white,color:C.muted,cursor:'pointer',fontFamily:'inherit'}}>✎</button>
+                          <button onClick={e=>{e.stopPropagation();setDeleteTarget(c)}} title="Delete patient" style={{fontSize:11,padding:'4px 8px',border:'none',borderRadius:7,background:C.red,color:'#fff',cursor:'pointer',fontFamily:'inherit',fontWeight:600}}>Del</button>
                         </div>}
                     </td>
                   </tr>
@@ -554,6 +601,7 @@ function DashboardPage({clients, loading, error, onShowAdd, sending, setSending,
           <div><div style={{fontSize:11,color:C.muted,marginBottom:4,fontWeight:600}}>AI Recommendation</div><div style={{fontSize:12,color:C.label,padding:'10px 12px',background:'#f0fdf4',borderRadius:8,border:`1px solid #bbf7d0`,lineHeight:1.5}}>{getAIMove(selected)}</div></div>
         </div>
       )}
+      {deleteTarget&&<DeleteConfirmModal patient={deleteTarget} deleting={deleting} onConfirm={deletePatient} onCancel={()=>setDeleteTarget(null)}/>}
     </div>
   )
 }
@@ -741,6 +789,32 @@ function PatientsPage({clients,loading,error,showAdd,setShowAdd,sending,setSendi
   const [search,setSearch]=useState('')
   const [fStage,setFStage]=useState('All')
   const [fStatus,setFStatus]=useState('All')
+  const [deleteTarget,setDeleteTarget]=useState(null)
+  const [deleting,setDeleting]=useState(false)
+
+  async function deletePatient() {
+    if (!deleteTarget) return
+    setDeleting(true)
+    try {
+      console.log('[deletePatient] sending:', {Client_ID: deleteTarget.Client_ID})
+      const res = await fetch(DELETE_URL, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({Client_ID:deleteTarget.Client_ID})})
+      const data = await res.json()
+      console.log('[deletePatient] response:', res.status, data)
+      if (!res.ok || !data.success) {
+        showToast(data.error||'Delete failed','error')
+      } else {
+        setClients(cs=>cs.filter(x=>x.Client_ID!==deleteTarget.Client_ID))
+        if (selected?.Client_ID===deleteTarget.Client_ID) setSelected(null)
+        showToast(`${deleteTarget.Full_Name} deleted`)
+        setDeleteTarget(null)
+      }
+    } catch(e) {
+      console.error('[deletePatient] exception:', e)
+      showToast('Delete failed: '+e.message,'error')
+    } finally {
+      setDeleting(false)
+    }
+  }
 
   async function sendReminder(c,e) {
     e.stopPropagation();setSending(c.Client_ID)
@@ -833,6 +907,7 @@ function PatientsPage({clients,loading,error,showAdd,setShowAdd,sending,setSendi
                           <button onClick={e=>sendReminder(c,e)} disabled={sending===c.Client_ID} style={{fontSize:11,padding:'5px 10px',border:'none',borderRadius:7,background:C.blueSoft,color:C.blueDark,cursor:'pointer',opacity:sending===c.Client_ID?0.5:1,fontFamily:'inherit'}}>{sending===c.Client_ID?'...':'WA'}</button>
                           <button onClick={e=>markDone(c,e)} disabled={doing===c.Client_ID} style={{fontSize:11,padding:'5px 8px',border:'none',borderRadius:7,background:C.greenSoft,color:C.green,cursor:'pointer',opacity:doing===c.Client_ID?0.5:1,fontFamily:'inherit'}}>{doing===c.Client_ID?'...':'✓'}</button>
                           <button onClick={e=>{e.stopPropagation();setEditRow(isEdit?null:cid);setEditV({Reminder_Stage:c.Reminder_Stage,Next_Reminder_Date:c.Next_Reminder_Date||''})}} style={{fontSize:11,padding:'5px 8px',border:`1px solid ${C.border}`,borderRadius:7,background:C.white,color:C.muted,cursor:'pointer',fontFamily:'inherit'}}>✎</button>
+                          <button onClick={e=>{e.stopPropagation();setDeleteTarget(c)}} title="Delete patient" style={{fontSize:11,padding:'5px 8px',border:'none',borderRadius:7,background:C.red,color:'#fff',cursor:'pointer',fontFamily:'inherit',fontWeight:600}}>Del</button>
                         </div>}
                     </td>
                   </tr>
@@ -845,6 +920,7 @@ function PatientsPage({clients,loading,error,showAdd,setShowAdd,sending,setSendi
 
       {selected&&<PatientDetailPanel client={selected} onClose={()=>setSelected(null)} sending={sending} setSending={setSending} doing={doing} setDoing={setDoing} editRow={editRow} setEditRow={setEditRow} editV={editV} setEditV={setEditV} setClients={setClients} showToast={showToast} setSelected={setSelected}/>}
       {showAdd&&<AddModal onClose={()=>setShowAdd(false)} onAdd={(c,rowNum)=>{const nc={Client_ID:`CLT-${crypto.randomUUID().slice(0,8)}`,...c,Status:'Active',Last_Reminder_Sent:'',Next_Reminder_Date:'',row_number:rowNum??Date.now()};setClients(cs=>[...cs,nc]);showToast(`${c.Full_Name} added`);setTimeout(()=>setShowAdd(false),500)}}/>}
+      {deleteTarget&&<DeleteConfirmModal patient={deleteTarget} deleting={deleting} onConfirm={deletePatient} onCancel={()=>setDeleteTarget(null)}/>}
     </div>
   )
 }
