@@ -147,8 +147,8 @@ function AddModal({onClose, onAdd}) {
       const res  = await fetch(ADD_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(f)})
       const data = await res.json().catch(()=>({}))
       console.log('[AddModal] response', res.status, data)
-      if (!res.ok) throw new Error(data.error || data.detail || `Server error ${res.status}`)
-      onAdd(f, data.row_number ?? null)
+      if (!res.ok || !data.success) throw new Error(data.error || data.detail || `Server error ${res.status}`)
+      onAdd(f)
     }
     catch(e) { console.error('[AddModal] failed:', e); setErr(e.message||'Failed to add client.') }
     finally { setSaving(false) }
@@ -921,7 +921,7 @@ function PatientsPage({clients,loading,error,showAdd,setShowAdd,sending,setSendi
       </div>
 
       {selected&&<PatientDetailPanel client={selected} onClose={()=>setSelected(null)} sending={sending} setSending={setSending} doing={doing} setDoing={setDoing} editRow={editRow} setEditRow={setEditRow} editV={editV} setEditV={setEditV} setClients={setClients} showToast={showToast} setSelected={setSelected}/>}
-      {showAdd&&<AddModal onClose={()=>setShowAdd(false)} onAdd={(c)=>{showToast(`${c.Full_Name} added`);setShowAdd(false);reloadClients()}}/>}
+      {showAdd&&<AddModal onClose={()=>setShowAdd(false)} onAdd={(c)=>{showToast(`${c.Full_Name} added`);setShowAdd(false);reloadClients();setTimeout(reloadClients,1500)}}/>}
       {deleteTarget&&<DeleteConfirmModal patient={deleteTarget} deleting={deleting} onConfirm={deletePatient} onCancel={()=>setDeleteTarget(null)}/>}
     </div>
   )
@@ -1511,9 +1511,10 @@ export default function App() {
   function handleNav(page) { setActiveNav(page); setSelected(null) }
   async function reloadClients() {
     try {
-      const d = await fetch(WEBHOOK_URL).then(r=>r.json())
-      console.log('[reloadClients] fetched', Array.isArray(d)?d.length:d, 'rows')
-      setClients(Array.isArray(d)?d:[])
+      const d = await fetch(WEBHOOK_URL, {cache:'no-store'}).then(r=>r.json())
+      if (!Array.isArray(d)) { console.error('[reloadClients] unexpected response:', d); return }
+      console.log('[reloadClients] loaded', d.length, 'rows — IDs:', d.map(c=>c.Client_ID))
+      setClients(d)
     } catch(e) { console.error('[reloadClients] failed:', e.message) }
   }
 
@@ -1539,7 +1540,7 @@ export default function App() {
           {activeNav==='Profile'&&<ProfilePage darkMode={darkMode} setDarkMode={setDarkMode} avatar={avatar} setAvatar={setAvatar}/>}
         </div>
       </div>
-      {activeNav==='Dashboard'&&showAdd&&<AddModal onClose={()=>setShowAdd(false)} onAdd={(c)=>{showToast(`${c.Full_Name} added`);setShowAdd(false);reloadClients()}}/>}
+      {activeNav==='Dashboard'&&showAdd&&<AddModal onClose={()=>setShowAdd(false)} onAdd={(c)=>{showToast(`${c.Full_Name} added`);setShowAdd(false);reloadClients();setTimeout(reloadClients,1500)}}/>}
     </div>
   )
 }
