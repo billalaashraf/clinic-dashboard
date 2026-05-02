@@ -398,12 +398,13 @@ function DashboardPage({clients, loading, error, onShowAdd, sending, setSending,
     if (!deleteTarget) return
     setDeleting(true)
     try {
+      console.log('Deleting Client_ID:', deleteTarget.Client_ID)
       console.log('[deletePatient] sending:', {Client_ID: deleteTarget.Client_ID})
       const res = await fetch(DELETE_URL, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({Client_ID:deleteTarget.Client_ID})})
       const data = await res.json()
       console.log('[deletePatient] response:', res.status, data)
-      if (!res.ok || !data.success) {
-        showToast(data.error||'Delete failed','error')
+      if (!res.ok || !data.success || !data.deleted) {
+        showToast(data.error||'Delete failed — row not removed from sheet','error')
       } else {
         setClients(cs=>cs.filter(x=>x.Client_ID!==deleteTarget.Client_ID))
         if (selected?.Client_ID===deleteTarget.Client_ID) setSelected(null)
@@ -796,12 +797,13 @@ function PatientsPage({clients,loading,error,showAdd,setShowAdd,sending,setSendi
     if (!deleteTarget) return
     setDeleting(true)
     try {
+      console.log('Deleting Client_ID:', deleteTarget.Client_ID)
       console.log('[deletePatient] sending:', {Client_ID: deleteTarget.Client_ID})
       const res = await fetch(DELETE_URL, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({Client_ID:deleteTarget.Client_ID})})
       const data = await res.json()
       console.log('[deletePatient] response:', res.status, data)
-      if (!res.ok || !data.success) {
-        showToast(data.error||'Delete failed','error')
+      if (!res.ok || !data.success || !data.deleted) {
+        showToast(data.error||'Delete failed — row not removed from sheet','error')
       } else {
         setClients(cs=>cs.filter(x=>x.Client_ID!==deleteTarget.Client_ID))
         if (selected?.Client_ID===deleteTarget.Client_ID) setSelected(null)
