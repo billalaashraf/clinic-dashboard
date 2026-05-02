@@ -389,7 +389,7 @@ function KpiCard({label, value, color, subtext, bars}) {
 }
 
 // ─── Dashboard Page ───────────────────────────────────────────────────────────
-function DashboardPage({clients, loading, error, onShowAdd, sending, setSending, doing, setDoing, editRow, setEditRow, editV, setEditV, setClients, showToast, selected, setSelected, search, setSearch}) {
+function DashboardPage({clients, loading, error, onShowAdd, sending, setSending, doing, setDoing, editRow, setEditRow, editV, setEditV, setClients, showToast, selected, setSelected, search, setSearch, reloadClients}) {
   const [fStage,setFStage]=useState('All')
   const [fStatus,setFStatus]=useState('All')
   const [deleteTarget,setDeleteTarget]=useState(null)
@@ -422,18 +422,38 @@ function DashboardPage({clients, loading, error, onShowAdd, sending, setSending,
 
   async function sendReminder(c,e) {
     e.stopPropagation();setSending(c.Client_ID)
-    try { await fetch(REMIND_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({client_id:c.Client_ID,row_number:c.row_number,name:c.Full_Name,email:c.Email,treatment:c.Treatment_Type})}); showToast(`Reminder sent to ${c.Full_Name}`) }
-    catch { showToast('Failed','error') } finally { setSending(null) }
+    try {
+      console.log('[sendReminder] client_id:',c.Client_ID)
+      const res=await fetch(REMIND_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({client_id:c.Client_ID,row_number:c.row_number,name:c.Full_Name,email:c.Email,treatment:c.Treatment_Type})})
+      if(!res.ok){const t=await res.text();console.error('[sendReminder] failed:',res.status,t);showToast('Failed to send reminder','error')}
+      else{console.log('[sendReminder] ok');showToast(`Reminder sent to ${c.Full_Name}`)}
+    }
+    catch(err){console.error('[sendReminder] exception:',err);showToast('Failed to send reminder','error')} finally{setSending(null)}
   }
   async function markDone(c,e) {
     e.stopPropagation();setDoing(c.Client_ID)
-    try { const ds=new Date().toLocaleDateString('en-GB'); await fetch(UPDATE_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({row_number:c.row_number,field:'Last_Reminder_Sent',value:ds})}); setClients(cs=>cs.map(x=>x.Client_ID===c.Client_ID?{...x,Last_Reminder_Sent:ds}:x)); showToast(`Marked done for ${c.Full_Name}`) }
-    catch { showToast('Failed','error') } finally { setDoing(null) }
+    try {
+      const ds=new Date().toLocaleDateString('en-GB')
+      console.log('[markDone] client_id:',c.Client_ID,'date:',ds)
+      const res=await fetch(UPDATE_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({row_number:c.row_number,field:'Last_Reminder_Sent',value:ds})})
+      const data=await res.json().catch(()=>({}))
+      console.log('[markDone] response:',res.status,data)
+      if(!res.ok||!data.success){showToast(data.error||'Mark done failed','error')}
+      else{setClients(cs=>cs.map(x=>x.Client_ID===c.Client_ID?{...x,Last_Reminder_Sent:ds}:x));showToast(`Marked done for ${c.Full_Name}`);reloadClients()}
+    }
+    catch(err){console.error('[markDone] exception:',err);showToast('Failed','error')} finally{setDoing(null)}
   }
   async function saveEdit(c,e) {
     e.stopPropagation()
-    try { await fetch(UPDATE_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({row_number:c.row_number,...editV})}); setClients(cs=>cs.map(x=>x.Client_ID===c.Client_ID?{...x,...editV}:x)); if(selected?.Client_ID===c.Client_ID) setSelected(s=>({...s,...editV})); showToast('Client updated');setEditRow(null) }
-    catch { showToast('Failed','error') }
+    try {
+      console.log('[saveEdit] client_id:',c.Client_ID,'changes:',editV)
+      const res=await fetch(UPDATE_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({row_number:c.row_number,...editV})})
+      const data=await res.json().catch(()=>({}))
+      console.log('[saveEdit] response:',res.status,data)
+      if(!res.ok||!data.success){showToast(data.error||'Update failed','error')}
+      else{setClients(cs=>cs.map(x=>x.Client_ID===c.Client_ID?{...x,...editV}:x));if(selected?.Client_ID===c.Client_ID)setSelected(s=>({...s,...editV}));showToast('Client updated');setEditRow(null);reloadClients()}
+    }
+    catch(err){console.error('[saveEdit] exception:',err);showToast('Failed','error')}
   }
 
   const sorted=[...clients].sort((a,b)=>getPriority(b).score-getPriority(a).score)
@@ -609,7 +629,7 @@ function DashboardPage({clients, loading, error, onShowAdd, sending, setSending,
 }
 
 // ─── Patient Detail Panel ─────────────────────────────────────────────────────
-function PatientDetailPanel({client:c, onClose, sending, setSending, doing, setDoing, editRow, setEditRow, editV, setEditV, setClients, showToast, setSelected}) {
+function PatientDetailPanel({client:c, onClose, sending, setSending, doing, setDoing, editRow, setEditRow, editV, setEditV, setClients, showToast, setSelected, reloadClients}) {
   const [tab, setTab]         = useState('overview')
   const noteKey               = `clinicNote_${c.Client_ID}`
   const [note, setNote]       = useState(()=>typeof window!=='undefined'?localStorage.getItem(noteKey)||'':'')
@@ -623,18 +643,38 @@ function PatientDetailPanel({client:c, onClose, sending, setSending, doing, setD
 
   async function sendReminder(e) {
     e.stopPropagation(); setSending(c.Client_ID)
-    try { await fetch(REMIND_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({client_id:c.Client_ID,row_number:c.row_number,name:c.Full_Name,email:c.Email,treatment:c.Treatment_Type})}); showToast(`Reminder sent to ${c.Full_Name}`) }
-    catch { showToast('Failed to send reminder','error') } finally { setSending(null) }
+    try {
+      console.log('[sendReminder] client_id:',c.Client_ID)
+      const res=await fetch(REMIND_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({client_id:c.Client_ID,row_number:c.row_number,name:c.Full_Name,email:c.Email,treatment:c.Treatment_Type})})
+      if(!res.ok){const t=await res.text();console.error('[sendReminder] failed:',res.status,t);showToast('Failed to send reminder','error')}
+      else{console.log('[sendReminder] ok');showToast(`Reminder sent to ${c.Full_Name}`)}
+    }
+    catch(err){console.error('[sendReminder] exception:',err);showToast('Failed to send reminder','error')} finally{setSending(null)}
   }
   async function markDone(e) {
     e.stopPropagation(); setDoing(c.Client_ID)
-    try { const ds=new Date().toLocaleDateString('en-GB'); await fetch(UPDATE_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({row_number:c.row_number,field:'Last_Reminder_Sent',value:ds})}); setClients(cs=>cs.map(x=>x.Client_ID===c.Client_ID?{...x,Last_Reminder_Sent:ds}:x)); setSelected(s=>({...s,Last_Reminder_Sent:ds})); showToast(`Marked done for ${c.Full_Name}`) }
-    catch { showToast('Failed','error') } finally { setDoing(null) }
+    try {
+      const ds=new Date().toLocaleDateString('en-GB')
+      console.log('[markDone] client_id:',c.Client_ID,'date:',ds)
+      const res=await fetch(UPDATE_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({row_number:c.row_number,field:'Last_Reminder_Sent',value:ds})})
+      const data=await res.json().catch(()=>({}))
+      console.log('[markDone] response:',res.status,data)
+      if(!res.ok||!data.success){showToast(data.error||'Mark done failed','error')}
+      else{setClients(cs=>cs.map(x=>x.Client_ID===c.Client_ID?{...x,Last_Reminder_Sent:ds}:x));setSelected(s=>({...s,Last_Reminder_Sent:ds}));showToast(`Marked done for ${c.Full_Name}`);reloadClients()}
+    }
+    catch(err){console.error('[markDone] exception:',err);showToast('Failed','error')} finally{setDoing(null)}
   }
   async function saveEdit(e) {
     e.stopPropagation()
-    try { await fetch(UPDATE_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({row_number:c.row_number,...editV})}); setClients(cs=>cs.map(x=>x.Client_ID===c.Client_ID?{...x,...editV}:x)); setSelected(s=>({...s,...editV})); showToast('Patient updated'); setEditRow(null) }
-    catch { showToast('Failed','error') }
+    try {
+      console.log('[saveEdit] client_id:',c.Client_ID,'changes:',editV)
+      const res=await fetch(UPDATE_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({row_number:c.row_number,...editV})})
+      const data=await res.json().catch(()=>({}))
+      console.log('[saveEdit] response:',res.status,data)
+      if(!res.ok||!data.success){showToast(data.error||'Update failed','error')}
+      else{setClients(cs=>cs.map(x=>x.Client_ID===c.Client_ID?{...x,...editV}:x));setSelected(s=>({...s,...editV}));showToast('Patient updated');setEditRow(null);reloadClients()}
+    }
+    catch(err){console.error('[saveEdit] exception:',err);showToast('Failed','error')}
   }
   function saveNote() {
     if(typeof window!=='undefined') localStorage.setItem(noteKey, note)
@@ -821,18 +861,38 @@ function PatientsPage({clients,loading,error,showAdd,setShowAdd,sending,setSendi
 
   async function sendReminder(c,e) {
     e.stopPropagation();setSending(c.Client_ID)
-    try { await fetch(REMIND_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({client_id:c.Client_ID,row_number:c.row_number,name:c.Full_Name,email:c.Email,treatment:c.Treatment_Type})}); showToast(`Reminder sent to ${c.Full_Name}`) }
-    catch { showToast('Failed','error') } finally { setSending(null) }
+    try {
+      console.log('[sendReminder] client_id:',c.Client_ID)
+      const res=await fetch(REMIND_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({client_id:c.Client_ID,row_number:c.row_number,name:c.Full_Name,email:c.Email,treatment:c.Treatment_Type})})
+      if(!res.ok){const t=await res.text();console.error('[sendReminder] failed:',res.status,t);showToast('Failed to send reminder','error')}
+      else{console.log('[sendReminder] ok');showToast(`Reminder sent to ${c.Full_Name}`)}
+    }
+    catch(err){console.error('[sendReminder] exception:',err);showToast('Failed to send reminder','error')} finally{setSending(null)}
   }
   async function markDone(c,e) {
     e.stopPropagation();setDoing(c.Client_ID)
-    try { const ds=new Date().toLocaleDateString('en-GB'); await fetch(UPDATE_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({row_number:c.row_number,field:'Last_Reminder_Sent',value:ds})}); setClients(cs=>cs.map(x=>x.Client_ID===c.Client_ID?{...x,Last_Reminder_Sent:ds}:x)); showToast(`Marked done for ${c.Full_Name}`) }
-    catch { showToast('Failed','error') } finally { setDoing(null) }
+    try {
+      const ds=new Date().toLocaleDateString('en-GB')
+      console.log('[markDone] client_id:',c.Client_ID,'date:',ds)
+      const res=await fetch(UPDATE_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({row_number:c.row_number,field:'Last_Reminder_Sent',value:ds})})
+      const data=await res.json().catch(()=>({}))
+      console.log('[markDone] response:',res.status,data)
+      if(!res.ok||!data.success){showToast(data.error||'Mark done failed','error')}
+      else{setClients(cs=>cs.map(x=>x.Client_ID===c.Client_ID?{...x,Last_Reminder_Sent:ds}:x));showToast(`Marked done for ${c.Full_Name}`);reloadClients()}
+    }
+    catch(err){console.error('[markDone] exception:',err);showToast('Failed','error')} finally{setDoing(null)}
   }
   async function saveEdit(c,e) {
     e.stopPropagation()
-    try { await fetch(UPDATE_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({row_number:c.row_number,...editV})}); setClients(cs=>cs.map(x=>x.Client_ID===c.Client_ID?{...x,...editV}:x)); if(selected?.Client_ID===c.Client_ID) setSelected(s=>({...s,...editV})); showToast('Client updated');setEditRow(null) }
-    catch { showToast('Failed','error') }
+    try {
+      console.log('[saveEdit] client_id:',c.Client_ID,'changes:',editV)
+      const res=await fetch(UPDATE_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({row_number:c.row_number,...editV})})
+      const data=await res.json().catch(()=>({}))
+      console.log('[saveEdit] response:',res.status,data)
+      if(!res.ok||!data.success){showToast(data.error||'Update failed','error')}
+      else{setClients(cs=>cs.map(x=>x.Client_ID===c.Client_ID?{...x,...editV}:x));if(selected?.Client_ID===c.Client_ID)setSelected(s=>({...s,...editV}));showToast('Client updated');setEditRow(null);reloadClients()}
+    }
+    catch(err){console.error('[saveEdit] exception:',err);showToast('Failed','error')}
   }
 
   const sorted=[...clients].sort((a,b)=>getPriority(b).score-getPriority(a).score)
@@ -921,7 +981,7 @@ function PatientsPage({clients,loading,error,showAdd,setShowAdd,sending,setSendi
         )}
       </div>
 
-      {selected&&<PatientDetailPanel client={selected} onClose={()=>setSelected(null)} sending={sending} setSending={setSending} doing={doing} setDoing={setDoing} editRow={editRow} setEditRow={setEditRow} editV={editV} setEditV={setEditV} setClients={setClients} showToast={showToast} setSelected={setSelected}/>}
+      {selected&&<PatientDetailPanel client={selected} onClose={()=>setSelected(null)} sending={sending} setSending={setSending} doing={doing} setDoing={setDoing} editRow={editRow} setEditRow={setEditRow} editV={editV} setEditV={setEditV} setClients={setClients} showToast={showToast} setSelected={setSelected} reloadClients={reloadClients}/>}
       {showAdd&&<AddModal onClose={()=>setShowAdd(false)} onAdd={(c,clientId)=>{console.log('[onAdd] sheet Client_ID:',clientId??'pending reload');showToast(`${c.Full_Name} added`);setShowAdd(false);reloadClients();setTimeout(reloadClients,2000)}}/>}
       {deleteTarget&&<DeleteConfirmModal patient={deleteTarget} deleting={deleting} onConfirm={deletePatient} onCancel={()=>setDeleteTarget(null)}/>}
     </div>
