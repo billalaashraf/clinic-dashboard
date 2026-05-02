@@ -91,6 +91,19 @@ function getRevenue(c) {
   const diff = dayDiff(c.Next_Reminder_Date)
   return v * (c.Status==='Lapsed' ? 3 : diff!==null&&diff<0 ? 2 : 1)
 }
+function sortPatients(list) {
+  return [...list].sort((a,b)=>{
+    const da=dayDiff(a.Next_Reminder_Date),db=dayDiff(b.Next_Reminder_Date)
+    const ra=getRevenue(a),rb=getRevenue(b)
+    const ga=da===null?3:da<0?0:da===0?1:2
+    const gb=db===null?3:db<0?0:db===0?1:2
+    if(ga!==gb)return ga-gb
+    if(ga===0)return da!==db?da-db:rb-ra
+    if(ga===1)return rb-ra
+    if(ga===2)return da!==db?da-db:rb-ra
+    return rb-ra
+  })
+}
 
 const STAGES = ['Aftercare','Results Check','Rebooking','Win-back','Next Session','Lapsed']
 const TREATMENTS = ['Botox','Dermal Filler - Lips','Dermal Filler - Cheeks','Dermal Filler - Jawline','Anti-Sweat Injection','Laser Hair Removal','Laser Skin Resurfacing','Chemical Peel','HydraFacial','Microneedling / RF Microneedling','IPL / Photofacial','CoolSculpting / Cryolipolysis','HIFU / Ultherapy','RF Body Tightening','Cavitation']
@@ -775,34 +788,35 @@ function PatientDetailPanel({client:c, onClose, sending, setSending, doing, setD
         {tab==='Reminders'&&(
           <div>
             <div style={{fontSize:12,color:C.muted,marginBottom:16}}>Reminder history for {c.Full_Name}</div>
-            {remindersLog.length===0
-              ? <div style={{padding:'32px 0',textAlign:'center',color:C.muted,fontSize:13}}>No reminder records found.</div>
-              : remindersLog.map((r,i)=>{
-                  const statusColor = r.status==='Delivered'?C.green:r.status==='Overdue'?C.red:r.status==='Due Today'?C.amber:r.status==='Completed'?C.teal:C.muted
-                  const statusBg    = r.status==='Delivered'?C.greenSoft:r.status==='Overdue'?C.redSoft:r.status==='Due Today'?C.amberSoft:r.status==='Completed'?C.tealSoft:'var(--c-subtle)'
-                  return (
-                    <div key={i} style={{display:'flex',alignItems:'center',gap:14,padding:'12px 0',borderBottom:`1px solid var(--c-subtle)`}}>
-                      <div style={{width:8,height:8,borderRadius:'50%',background:statusColor,flexShrink:0,marginTop:2}}/>
-                      <div style={{flex:1}}>
-                        <div style={{fontSize:13,fontWeight:600,color:C.body}}>{r.type}</div>
-                        <div style={{fontSize:11,color:C.muted,marginTop:2}}>{r.date}</div>
-                      </div>
-                      <span style={pill(statusBg,statusColor)}>{r.status}</span>
-                    </div>
-                  )
-                })
-            }
-            {c.Reminders_Log&&Array.isArray(c.Reminders_Log)&&c.Reminders_Log.map((r,i)=>(
-              <div key={`log-${i}`} style={{display:'flex',alignItems:'center',gap:14,padding:'12px 0',borderBottom:`1px solid var(--c-subtle)`}}>
-                <div style={{width:8,height:8,borderRadius:'50%',background:C.blue,flexShrink:0}}/>
-                <div style={{flex:1}}>
-                  <div style={{fontSize:13,fontWeight:600,color:C.body}}>{r.type||'Reminder'}</div>
-                  <div style={{fontSize:11,color:C.muted,marginTop:2}}>{r.date||r.Date||'—'}</div>
-                  {r.notes&&<div style={{fontSize:11,color:C.muted,marginTop:2,fontStyle:'italic'}}>{r.notes}</div>}
-                </div>
-                {r.status&&<span style={pill('var(--c-subtle)',C.muted)}>{r.status}</span>}
+            {c.Last_Reminder_Sent&&(
+              <div style={{padding:'10px 14px',background:C.greenSoft,borderRadius:8,marginBottom:12,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                <span style={{fontSize:12,fontWeight:600,color:C.green}}>Last reminder sent</span>
+                <span style={{fontSize:12,color:C.body}}>{c.Last_Reminder_Sent}</span>
               </div>
-            ))}
+            )}
+            {(()=>{
+              const entries=c.Reminders_Log&&Array.isArray(c.Reminders_Log)&&c.Reminders_Log.length>0
+                ?c.Reminders_Log
+                :remindersLog
+              if(!entries||entries.length===0)return<div style={{padding:'32px 0',textAlign:'center',color:C.muted,fontSize:13}}>No reminders sent yet.</div>
+              return entries.map((r,i)=>{
+                const status=r.status||r.Status||'—'
+                const type=r.type||r.Type||r.channel||'Reminder'
+                const date=r.date||r.Date||r.sent_at||'—'
+                const statusColor=status==='Delivered'?C.green:status==='Overdue'?C.red:status==='Due Today'||status==='Due today'?C.amber:status==='Completed'?C.teal:C.muted
+                const statusBg=status==='Delivered'?C.greenSoft:status==='Overdue'?C.redSoft:status==='Due Today'||status==='Due today'?C.amberSoft:status==='Completed'?C.tealSoft:'var(--c-subtle)'
+                return(
+                  <div key={i} style={{display:'flex',alignItems:'center',gap:14,padding:'12px 0',borderBottom:`1px solid var(--c-subtle)`}}>
+                    <div style={{width:8,height:8,borderRadius:'50%',background:statusColor,flexShrink:0,marginTop:2}}/>
+                    <div style={{flex:1}}>
+                      <div style={{fontSize:13,fontWeight:600,color:C.body}}>{type}</div>
+                      <div style={{fontSize:11,color:C.muted,marginTop:2}}>{date}</div>
+                    </div>
+                    <span style={pill(statusBg,statusColor)}>{status}</span>
+                  </div>
+                )
+              })
+            })()}
           </div>
         )}
 
@@ -833,6 +847,8 @@ function PatientsPage({clients,loading,error,showAdd,setShowAdd,sending,setSendi
   const [fStatus,setFStatus]=useState('All')
   const [deleteTarget,setDeleteTarget]=useState(null)
   const [deleting,setDeleting]=useState(false)
+  const [selectedIds,setSelectedIds]=useState(new Set())
+  const toggleSelect=(id)=>setSelectedIds(prev=>{const s=new Set(prev);s.has(id)?s.delete(id):s.add(id);return s})
 
   async function deletePatient() {
     if (!deleteTarget) return
@@ -895,7 +911,7 @@ function PatientsPage({clients,loading,error,showAdd,setShowAdd,sending,setSendi
     catch(err){console.error('[saveEdit] exception:',err);showToast('Failed','error')}
   }
 
-  const sorted=[...clients].sort((a,b)=>getPriority(b).score-getPriority(a).score)
+  const sorted=sortPatients(clients)
   const filtered=sorted.filter(c=>{
     const ms=!search||[c.Full_Name,c.Treatment_Type,c.Client_ID].some(v=>v?.toLowerCase().includes(search.toLowerCase()))
     return ms&&(fStage==='All'||c.Reminder_Stage===fStage)&&(fStatus==='All'||c.Status===fStatus)
@@ -930,6 +946,28 @@ function PatientsPage({clients,loading,error,showAdd,setShowAdd,sending,setSendi
         ))}
       </div>
 
+      {(()=>{const urgent=sorted.filter(c=>{const d=dayDiff(c.Next_Reminder_Date);return d!==null&&d<=0}).slice(0,8);return urgent.length>0&&(
+        <div style={{...card,padding:'16px 18px',marginBottom:16,border:`1px solid #fca5a5`,background:'#fff7f7'}}>
+          <div style={{fontSize:13,fontWeight:700,color:C.red,marginBottom:12}}>Needs Attention Today <span style={{fontSize:12,fontWeight:500,color:C.muted}}>({urgent.length} client{urgent.length!==1?'s':''})</span></div>
+          <div style={{display:'flex',flexDirection:'column',gap:6}}>
+            {urgent.map(c=>{
+              const d=dayDiff(c.Next_Reminder_Date)
+              const rev=getRevenue(c)
+              return(
+                <div key={c.Client_ID} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'8px 12px',background:C.white,borderRadius:8,border:`1px solid ${C.border}`}}>
+                  <div style={{display:'flex',alignItems:'center',gap:10}}>
+                    <div style={{width:6,height:6,borderRadius:'50%',background:d===0?C.amber:C.red,flexShrink:0}}/>
+                    <div style={{fontSize:13,fontWeight:600,color:C.body}}>{c.Full_Name||'—'}</div>
+                    <span style={{fontSize:11,fontWeight:700,color:d===0?C.amber:C.red,background:d===0?C.amberSoft:C.redSoft,padding:'2px 8px',borderRadius:10}}>{d===0?'Due today':`${Math.abs(d)}d overdue`}</span>
+                  </div>
+                  <div style={{fontSize:12,color:C.muted,fontWeight:500}}>AED {rev.toLocaleString()}</div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )})()}
+
       <div style={{...card,padding:'14px 18px',marginBottom:16}}>
         <div style={{display:'flex',gap:12,alignItems:'center'}}>
           <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search patients..." style={{...inp,flex:1,maxWidth:280,height:36,padding:'0 12px',borderRadius:9}}/>
@@ -944,16 +982,21 @@ function PatientsPage({clients,loading,error,showAdd,setShowAdd,sending,setSendi
          :error?<div style={{padding:48,textAlign:'center',color:C.red}}>{error}</div>
          :(
           <table style={{width:'100%',borderCollapse:'collapse',fontSize:13}}>
-            <thead><tr style={{borderBottom:`1px solid ${C.border}`}}>{['Patient Name','Treatment','Reminder Stage','Next Reminder','Last Sent','Last Visit','Follow-up','Revenue','Actions'].map(h=><th key={h} style={{fontSize:11,color:C.muted,textAlign:'left',padding:'12px 14px',fontWeight:600,background:'var(--c-input-bg)',whiteSpace:'nowrap'}}>{h}</th>)}</tr></thead>
+            <thead><tr style={{borderBottom:`1px solid ${C.border}`}}><th style={{fontSize:11,color:C.muted,textAlign:'left',padding:'12px 8px',fontWeight:600,background:'var(--c-input-bg)',width:32}}/>{['Patient Name','Treatment','Reminder Stage','Next Reminder','Last Sent','Last Visit','Follow-up','Revenue','Actions'].map(h=><th key={h} style={{fontSize:11,color:C.muted,textAlign:'left',padding:'12px 14px',fontWeight:600,background:'var(--c-input-bg)',whiteSpace:'nowrap'}}>{h}</th>)}</tr></thead>
             <tbody>
               {filtered.map((c,i)=>{
+                if(!c.Client_ID){console.error('[row] missing Client_ID:',c.Full_Name||'unknown');return null}
                 const pri=getPriority(c);const rev=getRevenue(c);const diff=dayDiff(c.Next_Reminder_Date)
                 const stage=STAGE_STYLE[c.Reminder_Stage]||{bg:'var(--c-subtle)',color:C.label}
-                const cid=c.Client_ID||`row-${i}`;const isEdit=editRow===cid
+                const cid=c.Client_ID;const isEdit=editRow===cid
+                const isSelected=selectedIds.has(cid)
                 const td={padding:'11px 14px',borderBottom:`1px solid var(--c-subtle)`,color:C.body,verticalAlign:'middle'}
                 return (
-                  <tr key={cid} onClick={()=>{if(!isEdit){setSelected(c===selected?null:c);setEditRow(null)}}} style={{cursor:'pointer',background:selected===c?'#eff6ff':'#fff',transition:'background 120ms'}}>
-                    <td style={td}><div style={{fontWeight:600}}>{c.Full_Name}</div><div style={{fontSize:11,color:C.muted}}>{c.Client_ID}</div></td>
+                  <tr key={cid} onClick={()=>{if(!isEdit){setSelected(c===selected?null:c);setEditRow(null)}}} style={{cursor:'pointer',background:isSelected?'#eff6ff':selected===c?'#e8f0fe':'#fff',transition:'background 120ms'}}>
+                    <td style={{...td,padding:'11px 8px'}} onClick={e=>e.stopPropagation()}>
+                      <input type="checkbox" checked={isSelected} onChange={()=>toggleSelect(cid)} style={{cursor:'pointer',width:14,height:14}}/>
+                    </td>
+                    <td style={td}><div style={{fontWeight:600}}>{c.Full_Name||'—'}</div><div style={{fontSize:11,color:C.muted}}>{c.Client_ID}</div></td>
                     <td style={{...td,fontSize:12,color:C.muted}}>{c.Treatment_Type||'—'}</td>
                     <td style={td}><span style={pill(stage.bg,stage.color)}>{c.Reminder_Stage||'Not set'}</span></td>
                     <td style={{...td,fontSize:12,color:C.muted,whiteSpace:'nowrap'}}>{c.Next_Reminder_Date||'Not set'}</td>
@@ -962,7 +1005,11 @@ function PatientsPage({clients,loading,error,showAdd,setShowAdd,sending,setSendi
                     <td style={td}>
                       {isEdit
                         ?<input type="date" value={editV.Next_Reminder_Date?editV.Next_Reminder_Date.split('/').reverse().join('-'):''} onClick={e=>e.stopPropagation()} onChange={e=>{const p=e.target.value.split('-');setEditV(v=>({...v,Next_Reminder_Date:`${p[2]}/${p[1]}/${p[0]}`}))}} style={{...inp,fontSize:11,padding:'4px 8px',width:130}}/>
-                        :<div style={{fontSize:12,color:diff===null?C.muted:diff<0?C.red:diff===0?C.amber:C.muted,fontWeight:diff!==null&&diff<=0?600:400}}>{diff===null?'Not set':diff<0?`${Math.abs(diff)}d overdue`:diff===0?'Due today':`In ${diff}d`}{c.Next_Reminder_Date&&<div style={{fontSize:10,color:C.muted,fontWeight:400,marginTop:2}}>{c.Next_Reminder_Date}</div>}</div>}
+                        :<div>
+                          <div style={{fontSize:12,fontWeight:diff!==null&&diff<=0?600:400,color:diff===null?C.muted:diff<0?C.red:diff===0?C.amber:C.muted}}>{diff===null?'Not set':diff<0?`${Math.abs(diff)}d overdue`:diff===0?'Due today':`In ${diff}d`}</div>
+                          {c.Next_Reminder_Date&&<div style={{fontSize:10,color:C.muted,marginTop:1}}>{c.Next_Reminder_Date}</div>}
+                          {c.Last_Reminder_Sent&&<div style={{fontSize:10,color:C.muted,marginTop:1}}>Sent: {c.Last_Reminder_Sent}</div>}
+                        </div>}
                     </td>
                     <td style={{...td,fontWeight:600}}>AED {rev.toLocaleString()}</td>
                     <td style={td}>
@@ -972,7 +1019,7 @@ function PatientsPage({clients,loading,error,showAdd,setShowAdd,sending,setSendi
                           <button onClick={e=>sendReminder(c,e)} disabled={sending===c.Client_ID} style={{fontSize:11,padding:'5px 10px',border:'none',borderRadius:7,background:C.blueSoft,color:C.blueDark,cursor:'pointer',opacity:sending===c.Client_ID?0.5:1,fontFamily:'inherit'}}>{sending===c.Client_ID?'...':'WA'}</button>
                           <button onClick={e=>markDone(c,e)} disabled={doing===c.Client_ID} style={{fontSize:11,padding:'5px 8px',border:'none',borderRadius:7,background:C.greenSoft,color:C.green,cursor:'pointer',opacity:doing===c.Client_ID?0.5:1,fontFamily:'inherit'}}>{doing===c.Client_ID?'...':'✓'}</button>
                           <button onClick={e=>{e.stopPropagation();setEditRow(isEdit?null:cid);setEditV({Reminder_Stage:c.Reminder_Stage,Next_Reminder_Date:c.Next_Reminder_Date||''})}} style={{fontSize:11,padding:'5px 8px',border:`1px solid ${C.border}`,borderRadius:7,background:C.white,color:C.muted,cursor:'pointer',fontFamily:'inherit'}}>✎</button>
-                          <button onClick={e=>{e.stopPropagation();setDeleteTarget(c)}} title="Delete patient" style={{fontSize:11,padding:'5px 8px',border:'none',borderRadius:7,background:C.red,color:'#fff',cursor:'pointer',fontFamily:'inherit',fontWeight:600}}>Del</button>
+                          <button onClick={e=>{e.stopPropagation();setDeleteTarget(c)}} disabled={deleting&&deleteTarget?.Client_ID===cid} title="Delete patient" style={{fontSize:11,padding:'5px 8px',border:'none',borderRadius:7,background:C.red,color:'#fff',cursor:'pointer',fontFamily:'inherit',fontWeight:600,opacity:deleting&&deleteTarget?.Client_ID===cid?0.5:1}}>{deleting&&deleteTarget?.Client_ID===cid?'...':'Del'}</button>
                         </div>}
                     </td>
                   </tr>
