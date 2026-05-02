@@ -57,9 +57,9 @@ function parseDate(str) {
   if (!str) return null
   const p = str.split('/')
   if (p.length !== 3) return null
-  const d = new Date(`${p[2]}-${p[1]}-${p[0]}`)
-  d.setHours(0,0,0,0)
-  return d
+  const [day, month, year] = p.map(Number)
+  if (!day || !month || !year) return null
+  return new Date(year, month - 1, day) // local midnight — avoids UTC-shift off-by-one
 }
 function dayDiff(str) {
   const d = parseDate(str)
@@ -754,7 +754,7 @@ function PatientDetailPanel({client:c, onClose, sending, setSending, doing, setD
               ['Phone / WhatsApp', c.WhatsApp_Number||'—'],
               ['Email',            c.Email||'—'],
               ['Treatment Date',   c.Treatment_Date||'—'],
-              ['Next Follow-up',   diff===null?'Not set':diff===0?`${c.Next_Reminder_Date} (Today)`:diff<0?`${c.Next_Reminder_Date} (${Math.abs(diff)}d overdue)`:c.Next_Reminder_Date?`${c.Next_Reminder_Date} (in ${diff}d)`:'Not set'],
+              ['Next Follow-up',   diff===null?'Not set':diff<0?`${c.Next_Reminder_Date} (${Math.abs(diff)}d overdue)`:diff===0?`${c.Next_Reminder_Date} (Due today)`:c.Next_Reminder_Date?`${c.Next_Reminder_Date} (in ${diff}d)`:'Not set'],
               ['Session',          c.Session_Number&&c.Total_Sessions_Planned?`${c.Session_Number} of ${c.Total_Sessions_Planned}`:c.Session_Number||'—'],
               ['Revenue at Risk',  `AED ${rev.toLocaleString()}`],
               ['Status',           c.Status||'—'],
@@ -944,23 +944,25 @@ function PatientsPage({clients,loading,error,showAdd,setShowAdd,sending,setSendi
          :error?<div style={{padding:48,textAlign:'center',color:C.red}}>{error}</div>
          :(
           <table style={{width:'100%',borderCollapse:'collapse',fontSize:13}}>
-            <thead><tr style={{borderBottom:`1px solid ${C.border}`}}>{['Patient Name','Treatment','Status','Last Visit','Follow-up','Revenue','Actions'].map(h=><th key={h} style={{fontSize:11,color:C.muted,textAlign:'left',padding:'12px 16px',fontWeight:600,background:'var(--c-input-bg)'}}>{h}</th>)}</tr></thead>
+            <thead><tr style={{borderBottom:`1px solid ${C.border}`}}>{['Patient Name','Treatment','Reminder Stage','Next Reminder','Last Sent','Last Visit','Follow-up','Revenue','Actions'].map(h=><th key={h} style={{fontSize:11,color:C.muted,textAlign:'left',padding:'12px 14px',fontWeight:600,background:'var(--c-input-bg)',whiteSpace:'nowrap'}}>{h}</th>)}</tr></thead>
             <tbody>
               {filtered.map((c,i)=>{
                 const pri=getPriority(c);const rev=getRevenue(c);const diff=dayDiff(c.Next_Reminder_Date)
                 const stage=STAGE_STYLE[c.Reminder_Stage]||{bg:'var(--c-subtle)',color:C.label}
                 const cid=c.Client_ID||`row-${i}`;const isEdit=editRow===cid
-                const td={padding:'13px 16px',borderBottom:`1px solid var(--c-subtle)`,color:C.body,verticalAlign:'middle'}
+                const td={padding:'11px 14px',borderBottom:`1px solid var(--c-subtle)`,color:C.body,verticalAlign:'middle'}
                 return (
                   <tr key={cid} onClick={()=>{if(!isEdit){setSelected(c===selected?null:c);setEditRow(null)}}} style={{cursor:'pointer',background:selected===c?'#eff6ff':'#fff',transition:'background 120ms'}}>
                     <td style={td}><div style={{fontWeight:600}}>{c.Full_Name}</div><div style={{fontSize:11,color:C.muted}}>{c.Client_ID}</div></td>
-                    <td style={{...td,fontSize:12,color:C.muted}}>{c.Treatment_Type}</td>
-                    <td style={td}><span style={pill(stage.bg,stage.color)}>{c.Reminder_Stage}</span></td>
+                    <td style={{...td,fontSize:12,color:C.muted}}>{c.Treatment_Type||'—'}</td>
+                    <td style={td}><span style={pill(stage.bg,stage.color)}>{c.Reminder_Stage||'Not set'}</span></td>
+                    <td style={{...td,fontSize:12,color:C.muted,whiteSpace:'nowrap'}}>{c.Next_Reminder_Date||'Not set'}</td>
+                    <td style={{...td,fontSize:12,color:C.muted,whiteSpace:'nowrap'}}>{c.Last_Reminder_Sent||'Not set'}</td>
                     <td style={{...td,fontSize:12,color:C.muted}}>{c.Treatment_Date||'—'}</td>
                     <td style={td}>
                       {isEdit
                         ?<input type="date" value={editV.Next_Reminder_Date?editV.Next_Reminder_Date.split('/').reverse().join('-'):''} onClick={e=>e.stopPropagation()} onChange={e=>{const p=e.target.value.split('-');setEditV(v=>({...v,Next_Reminder_Date:`${p[2]}/${p[1]}/${p[0]}`}))}} style={{...inp,fontSize:11,padding:'4px 8px',width:130}}/>
-                        :<div style={{fontSize:12,color:diff!==null&&diff<0?C.red:diff===0?C.green:C.muted,fontWeight:diff!==null&&diff<=0?600:400}}>{diff===null?'Not set':diff===0?'Today':diff<0?`${Math.abs(diff)}d overdue`:`In ${diff}d`}{c.Next_Reminder_Date&&<div style={{fontSize:10,color:C.muted,fontWeight:400}}>{c.Next_Reminder_Date}</div>}</div>}
+                        :<div style={{fontSize:12,color:diff===null?C.muted:diff<0?C.red:diff===0?C.amber:C.muted,fontWeight:diff!==null&&diff<=0?600:400}}>{diff===null?'Not set':diff<0?`${Math.abs(diff)}d overdue`:diff===0?'Due today':`In ${diff}d`}{c.Next_Reminder_Date&&<div style={{fontSize:10,color:C.muted,fontWeight:400,marginTop:2}}>{c.Next_Reminder_Date}</div>}</div>}
                     </td>
                     <td style={{...td,fontWeight:600}}>AED {rev.toLocaleString()}</td>
                     <td style={td}>
